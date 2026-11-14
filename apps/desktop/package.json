@@ -1,0 +1,37 @@
+{
+  "name": "@sunto/desktop",
+  "productName": "Sunto",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sunto for macOS",
+  "author": "Sunto",
+  "main": "main.cjs",
+  "scripts": {
+    "dev": "electron .",
+    "build": "electron-builder --mac dir",
+    "smoke": "electron . --smoke-test"
+  },
+  "devDependencies": {
+    "electron": "45.3.2",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.sunto.app",
+    "productName": "Sunto",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      {
+        "from": "../../packages/app/dist",
+        "to": "renderer"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "identity": null
+    }
+  }
+}
