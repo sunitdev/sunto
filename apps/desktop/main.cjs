@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, nativeTheme } = require('electron');
 const path = require('node:path');
 
 app.setName('Sunto');
@@ -27,13 +27,16 @@ ipcMain.handle('sunto:storage', (event, options) => {
   );
   return job;
 });
+// Matches the renderer's --bg token so resizing never flashes the wrong color.
+const windowBackground = () =>
+  nativeTheme.shouldUseDarkColors ? '#2e2e2e' : '#ffffff';
 function createWindow() {
   const win = new BrowserWindow({
     width: 1180,
     height: 850,
     minWidth: 390,
     minHeight: 600,
-    backgroundColor: '#ffffff',
+    backgroundColor: windowBackground(),
     title: 'Sunto',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -44,6 +47,9 @@ function createWindow() {
   });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (event) => event.preventDefault());
+  const updateBackground = () => win.setBackgroundColor(windowBackground());
+  nativeTheme.on('updated', updateBackground);
+  win.on('closed', () => nativeTheme.off('updated', updateBackground));
   win.webContents.session.setPermissionRequestHandler(
     (_contents, _permission, callback) => callback(false),
   );

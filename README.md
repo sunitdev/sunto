@@ -1,6 +1,6 @@
 # Sunto
 
-A shared React + TypeScript todo app with Electron for macOS and Capacitor for iPhone. The responsive Inbox follows the supplied Minimal Todo design: inline title/notes editing, completion, a desktop add toolbar, and a phone floating add button. New installations start empty.
+A shared React + TypeScript todo app with Electron for macOS and Capacitor for iPhone. The responsive Inbox follows the supplied Minimal Todo design: inline title/notes editing, completion, a desktop add toolbar, and a phone floating add button. It follows the system light/dark appearance using the design's dark palettes. In the editor, Enter on the title or Escape closes it. New installations start empty.
 
 ## Run locally
 

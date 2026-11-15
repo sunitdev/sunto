@@ -19,7 +19,7 @@ function InboxIcon({ empty = false }: { empty?: boolean }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth={empty ? 1.5 : 1.8}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -73,18 +73,17 @@ function Check({ task }: { task: Task }) {
       onClick={() => void store.update(task.id, { completed: !task.completed })}
     >
       <span className="task-box">
-        {task.completed && (
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M5 12.5l4.2 4.2L19 7" />
-          </svg>
-        )}
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M5 12.5l4.2 4.2L19 7" />
+        </svg>
       </span>
     </button>
   );
@@ -161,7 +160,7 @@ function Editor({ task, close }: { task: Task; close: () => void }) {
         value={notes}
         onChange={(e) => change('notes', e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Escape') done();
+          if (!e.nativeEvent.isComposing && e.key === 'Escape') done();
         }}
       />
       <div className="editor-actions">
