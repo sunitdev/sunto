@@ -1,4 +1,3 @@
-import './storage/driver';
 import { Capacitor } from '@capacitor/core';
 
 // Native capabilities belong here, keeping UI components independent of each shell.

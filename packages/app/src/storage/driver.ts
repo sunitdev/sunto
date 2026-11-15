@@ -3,11 +3,6 @@ export type Reply = { data?: string; folder?: string; files?: string[] };
 export interface NativeStorage {
   request(options: { command: string; data?: string }): Promise<Reply>;
 }
-declare global {
-  interface Window {
-    sunto?: NativeStorage & { platform: 'macos'; showEmojiPanel(): void };
-  }
-}
 const ios = registerPlugin<NativeStorage>('SuntoStorage');
 async function webRequest(command: string, data?: string): Promise<Reply> {
   if (!['load', 'save'].includes(command))
