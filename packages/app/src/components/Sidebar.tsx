@@ -1,20 +1,24 @@
-import { useState, type DragEvent } from 'react';
+import { useState, type DragEvent, type ReactNode } from 'react';
 import * as store from '../storage/store';
 import type { Task } from '../storage/model';
-import type { Library } from '../storage/selectors';
+import type { Day, Library } from '../storage/selectors';
 import { taskDropTarget } from '../drag';
-import { titles, untitled, type View } from '../views';
+import { titles, untitled, type StaticView, type View } from '../views';
 import { ListIcon, ViewIcon } from './icons';
 import { NewListMenu } from './NewListMenu';
 
 export function Sidebar({
   library,
+  day,
+  today,
   view,
   show,
   openMenu,
   addList,
 }: {
   library: Library;
+  day: Day;
+  today: string;
   view: View;
   show: (view: View) => void;
   openMenu: (menu: { id: string; x: number; y: number }) => void;
@@ -47,6 +51,33 @@ export function Sidebar({
       },
     );
   }
+  const goalDone = day.goal.filter((t) => t.completed).length;
+  const counts: Partial<Record<StaticView, ReactNode>> = {
+    inbox: inboxCount > 0 && (
+      <span
+        className="sidebar-count"
+        aria-label={`${inboxCount} incomplete tasks`}
+      >
+        {inboxCount}
+      </span>
+    ),
+    today: day.due.length > 0 && (
+      <span
+        className={`sidebar-count${day.due.some((t) => t.date < today) ? ' is-overdue' : ''}`}
+        aria-label={`${day.due.length} due`}
+      >
+        {day.due.length}
+      </span>
+    ),
+    goal: day.goal.length > 0 && (
+      <span
+        className={`sidebar-count goal-count${goalDone === day.goal.length ? ' is-complete' : ''}`}
+        aria-label={`${goalDone} of ${day.goal.length} done`}
+      >
+        {goalDone}/{day.goal.length}
+      </span>
+    ),
+  };
   const looseProjects = projects.filter((p) => !areaOf(p));
   const dragging = drag ? lists[drag] : undefined;
   function dropZone(area: string) {
@@ -109,24 +140,17 @@ export function Sidebar({
   return (
     <aside className="sidebar">
       <nav className="sidebar-nav" aria-label="Lists">
-        {(['inbox', 'logbook', 'trash'] as const).map((v) => (
+        {(['inbox', 'today', 'goal', 'logbook', 'trash'] as const).map((v) => (
           <button
             key={v}
-            className={`sidebar-item${v === 'inbox' && taskDrop === '' ? ' is-drop' : ''}`}
+            className={`sidebar-item${v === 'inbox' || v === 'goal' ? ' sidebar-break' : ''}${v === 'inbox' && taskDrop === '' ? ' is-drop' : ''}`}
             aria-current={view === v ? 'page' : undefined}
             {...(v === 'inbox' && taskTarget(''))}
             onClick={() => show(v)}
           >
             <ViewIcon view={v} />
             <span className="sidebar-title">{titles[v]}</span>
-            {v === 'inbox' && inboxCount > 0 && (
-              <span
-                className="sidebar-count"
-                aria-label={`${inboxCount} incomplete tasks`}
-              >
-                {inboxCount}
-              </span>
-            )}
+            {counts[v]}
           </button>
         ))}
         {/* Dropping a project here takes it out of its area. */}

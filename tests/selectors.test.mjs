@@ -12,9 +12,10 @@ const code = ts.transpileModule(source, {
     target: ts.ScriptTarget.ES2022,
   },
 }).outputText;
-const { organize, visibleTasks, groupTasks } = await import(
-  'data:text/javascript;base64,' + Buffer.from(code).toString('base64')
-);
+const { organize, visibleTasks, groupTasks, groupByList, dayPlan } =
+  await import(
+    'data:text/javascript;base64,' + Buffer.from(code).toString('base64')
+  );
 const DAY = 86400000;
 const record = (id, fields = {}) => ({
   id,
@@ -24,6 +25,9 @@ const record = (id, fields = {}) => ({
   kanban: false,
   icon: '',
   deletedFrom: '',
+  date: '',
+  repeat: '',
+  planned: '',
   title: id,
   notes: '',
   completed: false,
@@ -40,6 +44,7 @@ const library = (...records) =>
 const show = (lib, view, options = {}) =>
   visibleTasks(lib, view, {
     list: '',
+    today: '2026-03-10',
     editing: null,
     lingering: {},
     phone: false,
@@ -191,5 +196,58 @@ test('a project groups by section after to-dos in none, keeping empty sections',
   assert.deepEqual(
     groupTasks([tasks[0]], 'p', sections).map((g) => g.key),
     ['s1', 's2'],
+  );
+});
+test('Today shows to-dos due today or overdue, and the goal keeps its completed ones', () => {
+  const lib = library(
+    record('overdue', { date: '2026-03-08', created: 1 }),
+    record('due', { date: '2026-03-10', created: 2 }),
+    record('later', { date: '2026-03-11' }),
+    record('none'),
+    record('done', { date: '2026-03-10', completed: true }),
+    record('trashed', { date: '2026-03-09', trashed: true }),
+    record('blank', { date: '2026-03-09', title: ' ' }),
+    record('picked', { planned: '2026-03-10', completed: true }),
+    record('stale', { planned: '2026-03-09' }),
+  );
+  assert.deepEqual(show(lib, 'today'), ['due', 'blank', 'overdue']);
+  assert.deepEqual(show(lib, 'today', { lingering: { done: true } }), [
+    'due',
+    'blank',
+    'done',
+    'overdue',
+  ]);
+  assert.deepEqual(show(lib, 'goal'), ['picked']);
+  const day = dayPlan(lib, '2026-03-10');
+  assert.deepEqual(
+    day.due.map((t) => t.id),
+    ['overdue', 'due'],
+  );
+  assert.deepEqual(
+    day.goal.map((t) => t.id),
+    ['picked'],
+  );
+});
+test('Today groups to-dos by list in sidebar order, skipping empty lists', () => {
+  const lib = library(
+    record('area', { kind: 'area' }),
+    record('in-area', { kind: 'project', list: 'area', created: 2 }),
+    record('loose', { kind: 'project', created: 1 }),
+    record('empty', { kind: 'project', created: 3 }),
+    record('a', { list: 'in-area' }),
+    record('b', { list: 'area' }),
+    record('c'),
+    record('d', { list: 'loose' }),
+  );
+  assert.deepEqual(lib.order, ['', 'empty', 'loose', 'area', 'in-area']);
+  const groups = groupByList(lib.todos, lib);
+  assert.deepEqual(
+    groups.map((g) => [g.list, g.tasks.map((t) => t.id)]),
+    [
+      ['', ['c']],
+      ['loose', ['d']],
+      ['area', ['b']],
+      ['in-area', ['a']],
+    ],
   );
 });

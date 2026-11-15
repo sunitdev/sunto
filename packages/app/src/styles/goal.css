@@ -1,0 +1,303 @@
+/* Today's Goal: the prompt to plan the day, the planner, and the goal's
+   progress. */
+.plan-card {
+  margin: 0 -16px;
+  border-radius: 12px;
+  background: var(--plan-bg);
+  border: 1px solid var(--rule);
+}
+.plan-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.plan-text strong {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+}
+.plan-text span {
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--muted);
+}
+.plan-primary,
+.plan-secondary {
+  flex: none;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.plan-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.plan-secondary {
+  padding: 0 10px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.plan-prompt {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+}
+.planner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.planner-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.planner-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.planner-head .plan-text {
+  margin-right: 4px;
+}
+.planner-head .plan-text strong {
+  font-size: 15px;
+}
+.planner-target {
+  flex: none;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+}
+.stepper {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--sel);
+}
+.stepper button {
+  width: 28px;
+  height: 26px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stepper button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.stepper svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+.stepper > span {
+  min-width: 22px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+}
+.plan-slots {
+  display: flex;
+  gap: 4px;
+}
+.plan-slots span {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--sel);
+  transition: background 0.2s;
+}
+.plan-slots .is-filled {
+  background: var(--accent);
+}
+.plan-slots .is-over {
+  background: var(--warn);
+}
+.planner-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.planner-status {
+  flex: 1;
+  font-size: 12px;
+  line-height: 17px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.planner-status.is-reached {
+  color: var(--heading);
+}
+.planner-status.is-over {
+  color: var(--warn);
+}
+.plan-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 18px;
+}
+.plan-group:first-child {
+  margin-top: 6px;
+}
+.plan-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+}
+.plan-group-head .view-icon {
+  width: 16px;
+  height: 16px;
+}
+.plan-group-head .area-icon {
+  color: var(--pie);
+}
+.plan-group-head .emoji-icon {
+  font-size: 14px;
+}
+.plan-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% + 20px);
+  min-height: 42px;
+  margin: 0 -10px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  text-align: left;
+}
+.plan-row[aria-checked='true'] {
+  background: var(--plan-bg);
+}
+.plan-ring {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  border: 1.5px solid var(--box);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.plan-ring svg {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 3.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+.plan-row[aria-checked='true'] .plan-ring {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.plan-row[aria-checked='true'] .plan-ring svg {
+  opacity: 1;
+}
+.plan-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 20px;
+}
+.plan-when {
+  flex: none;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+}
+.plan-when.is-overdue {
+  color: var(--danger);
+}
+.plan-note {
+  margin: 0;
+  padding: 8px 0 0;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--muted);
+}
+.plan-note.plan-empty {
+  padding: 12px 0;
+  font-size: 13px;
+  line-height: 18px;
+}
+.goal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 30px;
+  padding: 14px 16px 12px;
+}
+.goal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.goal-head .view-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+.goal-head strong {
+  flex: 1;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 700;
+}
+.goal-progress {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.goal-edit {
+  height: 26px;
+  margin-right: -6px;
+  padding: 0 8px;
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.goal-card .plan-slots span {
+  transition: background 0.3s;
+}
+.goal-card.is-complete .goal-progress,
+.goal-done {
+  color: var(--good);
+}
+.goal-card.is-complete .plan-slots .is-filled {
+  background: var(--good);
+}
+.goal-done {
+  font-size: 12px;
+  line-height: 17px;
+  font-weight: 600;
+}

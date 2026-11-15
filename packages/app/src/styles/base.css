@@ -32,6 +32,9 @@
   --date: var(--accent);
   --heading: var(--accent);
   --danger: #c62828;
+  --warn: #a35f00;
+  --good: #237a43;
+  --plan-bg: rgb(37 112 224 / 5%);
   --trash-body: #b4b4ba;
   --trash-rim: #d4d4d9;
   --pie: #8e8e93;
@@ -73,6 +76,9 @@
     --date: #7aa7f7;
     --heading: #7aa7f7;
     --danger: #ff7070;
+    --warn: #f0a33a;
+    --good: #5bc77a;
+    --plan-bg: rgb(122 167 247 / 8%);
     --trash-body: #d4d4d4;
     --trash-rim: #f0f0f0;
     --pie: #a8a8a8;

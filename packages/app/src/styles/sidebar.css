@@ -82,8 +82,12 @@
   line-height: 20px;
   font-weight: 500;
 }
-.sidebar-nav > .sidebar-item:first-child {
+/* Space after the Inbox, and after Today's Goal. */
+.sidebar-break {
   margin-bottom: 18px;
+}
+.sidebar-nav > .sidebar-break:first-child {
+  margin-bottom: 24px;
 }
 .sidebar-item[aria-current='page'] {
   background: var(--sel);
@@ -102,6 +106,16 @@
   color: var(--muted);
   font-size: 13px;
   line-height: 18px;
+}
+.sidebar-count.is-overdue {
+  color: var(--danger);
+}
+.goal-count {
+  font-weight: 600;
+  color: var(--heading);
+}
+.goal-count.is-complete {
+  color: var(--good);
 }
 .new-list-menu {
   left: 8px;

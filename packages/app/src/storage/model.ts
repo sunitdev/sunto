@@ -2,6 +2,9 @@
 // distinguished by kind. `list` is a to-do's project or area, a project's
 // area, or a section's project ('' for none). `section` is a to-do's section
 // within its project, and `kanban` shows a project as a board of sections.
+// A to-do's `date` is the day it is due ('YYYY-MM-DD', '' for none), `repeat`
+// its repeat rule as JSON ('' for none), and `planned` the day it was picked
+// for that day's goal.
 export type Kind = 'task' | 'project' | 'area' | 'section';
 export type Fields = {
   kind: Kind;
@@ -10,6 +13,9 @@ export type Fields = {
   kanban: boolean;
   icon: string;
   deletedFrom: string;
+  date: string;
+  repeat: string;
+  planned: string;
   title: string;
   notes: string;
   completed: boolean;
@@ -52,6 +58,9 @@ const keys = [
   'kanban',
   'icon',
   'deletedFrom',
+  'date',
+  'repeat',
+  'planned',
   'title',
   'notes',
   'completed',
@@ -68,6 +77,9 @@ const strings = [
   'section',
   'icon',
   'deletedFrom',
+  'date',
+  'repeat',
+  'planned',
   'title',
   'notes',
 ];
@@ -95,7 +107,9 @@ export function validateChange(value: unknown): Change {
       (numbers.includes(key)
         ? typeof v !== 'number' || !Number.isFinite(v)
         : typeof v !== (strings.includes(key) ? 'string' : 'boolean')) ||
-      (key === 'kind' && !kinds.includes(v as string))
+      (key === 'kind' && !kinds.includes(v as string)) ||
+      ((key === 'date' || key === 'planned') &&
+        !/^(\d{4}-\d{2}-\d{2})?$/.test(v as string))
     )
       throw Error('Invalid task field');
   }
@@ -128,6 +142,9 @@ export function merge(state: State, input: unknown): State {
       kanban: false,
       icon: '',
       deletedFrom: '',
+      date: '',
+      repeat: '',
+      planned: '',
       title: '',
       notes: '',
       completed: false,

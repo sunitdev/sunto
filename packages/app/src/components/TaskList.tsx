@@ -2,14 +2,15 @@ import { useState, type RefObject } from 'react';
 import type { Task } from '../storage/model';
 import { completedTime, type Group, type Library } from '../storage/selectors';
 import { startTaskDrag } from '../drag';
-import { dayName, untitled, type View } from '../views';
+import { dayName, dueLabel, untitled, type View } from '../views';
 import { Check } from './Check';
 import { Editor } from './Editor';
-import { Plus } from './icons';
+import { InboxIcon, ListIcon, Plus, RepeatIcon } from './icons';
 import { SectionHeader } from './SectionHeader';
 
 export type ItemProps = {
   view: View;
+  today: string;
   phone: boolean;
   editing: string | null;
   selected: string | null;
@@ -21,12 +22,14 @@ export type ItemProps = {
   onSelect: (id: string) => void;
   onMenu: (task: Task, x: number, y: number) => void;
   onMove: (task: Task, anchor: DOMRect) => void;
+  onDate: (task: Task, anchor: DOMRect) => void;
 };
 // One to-do, or its editor. On desktop, to-dos in the Inbox, projects and
 // areas can be dragged onto another list.
 export function TaskItem({
   task,
   view,
+  today,
   phone,
   editing,
   selected,
@@ -38,11 +41,13 @@ export function TaskItem({
   onSelect,
   onMenu,
   onMove,
+  onDate,
 }: ItemProps & { task: Task }) {
   const [dragging, setDragging] = useState(false);
   const archive = view === 'logbook' || view === 'trash';
   const list = library.lists[library.listOf(task)];
   const listName = list ? list.title || untitled(list) : task.deletedFrom;
+  const due = task.date && !task.completed && dueLabel(task.date, today);
   return (
     <li
       data-task={task.id}
@@ -52,12 +57,16 @@ export function TaskItem({
       {editing === task.id ? (
         <Editor
           task={task}
+          today={today}
           list={list}
           progress={list ? library.progress(list.id) : 0}
           close={closeEditor}
           onToggle={onToggle}
           onMove={
             phone || task.trashed ? undefined : (anchor) => onMove(task, anchor)
+          }
+          onDate={
+            phone || task.trashed ? undefined : (anchor) => onDate(task, anchor)
           }
         />
       ) : (
@@ -95,30 +104,60 @@ export function TaskItem({
               <span className="task-list-name">{listName}</span>
             )}
           </button>
+          {due && (
+            <span className={`task-due${due.overdue ? ' is-overdue' : ''}`}>
+              {task.repeat && <RepeatIcon label="Repeats" />}
+              {due.short}
+            </span>
+          )}
         </div>
       )}
     </li>
   );
 }
+const listTitle = (list?: Task) =>
+  list ? list.title || untitled(list) : 'Inbox';
 // The view's to-dos, in their groups. A project's groups are its sections,
-// each ending with a button that adds a to-do to it.
+// each ending with a button that adds a to-do to it. Groups by list are
+// headed by a button opening the list.
 export function TaskList({
   groups,
   label,
   addTask,
+  showList,
   ...item
 }: ItemProps & {
   groups: (Group & { label: string })[];
   // Labels the list when its group has no heading.
   label: string;
   addTask?: (section: string) => void;
+  showList?: (id: string) => void;
 }) {
+  const { lists, progress } = item.library;
   return groups.map((group) => (
     <section
       key={group.key}
-      className={`task-group${group.section ? ' section-group' : ''}`}
+      className={`task-group${group.section ? ' section-group' : ''}${group.list !== undefined ? ' list-group' : ''}`}
     >
       {group.label && <h2>{group.label}</h2>}
+      {group.list !== undefined && (
+        <h2>
+          <button
+            className="list-group-header"
+            onClick={() => showList?.(group.list || 'inbox')}
+          >
+            {lists[group.list] ? (
+              <ListIcon
+                list={lists[group.list]}
+                progress={progress(group.list)}
+              />
+            ) : (
+              <InboxIcon />
+            )}
+            <span>{listTitle(lists[group.list])}</span>
+          </button>
+        </h2>
+      )}
       {group.section && addTask && (
         <SectionHeader section={group.section} addTask={addTask} />
       )}
@@ -127,7 +166,9 @@ export function TaskList({
         aria-label={
           group.section
             ? group.section.title || 'New Section'
-            : group.label || label
+            : group.list !== undefined
+              ? listTitle(lists[group.list])
+              : group.label || label
         }
       >
         {group.tasks.map((task) => (

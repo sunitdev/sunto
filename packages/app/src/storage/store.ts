@@ -7,6 +7,7 @@ import {
   type State,
 } from './model';
 import { native, request } from './driver';
+import { nextDate, parseRepeat } from './dates';
 let state = emptyState();
 let ready = false;
 let error = '';
@@ -73,8 +74,56 @@ export const setTrashed = (id: string, trashed: boolean) =>
       ? { trashed, trashedAt: Date.now() }
       : { trashed, trashedAt: 0, deletedFrom: '' },
   );
-export const setCompleted = (id: string, completed: boolean) =>
-  update(id, { completed, completedAt: completed ? Date.now() : 0 });
+const newTask = (list: string, section: string): Partial<Fields> => ({
+  kind: 'task',
+  list,
+  section,
+  title: '',
+  notes: '',
+  completed: false,
+  completedAt: 0,
+  trashed: false,
+  trashedAt: 0,
+  deleted: false,
+  created: Date.now(),
+});
+// Completing a repeating to-do adds its next occurrence in the same place,
+// and the completed one stops repeating.
+export function setCompleted(id: string, completed: boolean) {
+  const task = state.tasks[id];
+  const rule =
+    completed && task && !task.trashed && task.date
+      ? parseRepeat(task.repeat)
+      : null;
+  if (!rule)
+    return update(id, { completed, completedAt: completed ? Date.now() : 0 });
+  return updateAll([
+    [id, { completed, completedAt: Date.now(), repeat: '' }],
+    [
+      crypto.randomUUID(),
+      {
+        ...newTask(task.list, task.section),
+        title: task.title,
+        notes: task.notes,
+        date: nextDate(task.date, rule),
+        repeat: task.repeat,
+        created: task.created,
+      },
+    ],
+  ]);
+}
+// Picks the to-dos `ids` for the goal of `day`, dropping any others.
+export function setPlan(day: string, ids: string[]) {
+  const picked = new Set(ids);
+  return updateAll(
+    Object.values(state.tasks)
+      .filter((t) => !t.deleted && (t.planned === day) !== picked.has(t.id))
+      .map((t): [string, Partial<Fields>] => [
+        t.id,
+        { planned: picked.has(t.id) ? day : '' },
+      ]),
+  );
+}
 // Trashed to-dos are permanently deleted three months after being trashed.
 export function purgeTrash() {
   return run(async () => {
@@ -94,21 +143,14 @@ export function purgeTrash() {
     }
   });
 }
-export async function add(list = '', section = '') {
+// `fields` can give the new to-do a date or plan it for a day.
+export async function add(
+  list = '',
+  section = '',
+  fields: Partial<Fields> = {},
+) {
   const id = crypto.randomUUID();
-  await update(id, {
-    kind: 'task',
-    list,
-    section,
-    title: '',
-    notes: '',
-    completed: false,
-    completedAt: 0,
-    trashed: false,
-    trashedAt: 0,
-    deleted: false,
-    created: Date.now(),
-  });
+  await update(id, { ...newTask(list, section), ...fields });
   return id;
 }
 // A new project or area, or a section of the project `list`.

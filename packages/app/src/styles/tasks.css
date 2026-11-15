@@ -38,6 +38,46 @@
 .task-group + .section-group {
   margin-top: 28px;
 }
+/* Today and the goal group to-dos under a header that opens their list. */
+.task-group + .list-group {
+  margin-top: 24px;
+}
+.view-goal .task-group + .list-group {
+  margin-top: 22px;
+}
+.task-group.list-group > h2 {
+  margin: 4px 0 6px;
+  padding: 0;
+  border: 0;
+}
+.list-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0 0 7px;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+}
+.list-group-header > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.list-group-header .view-icon {
+  width: 18px;
+  height: 18px;
+}
+.list-group-header .area-icon {
+  color: var(--pie);
+}
+.list-group-header .emoji-icon {
+  font-size: 15px;
+}
 .section-header {
   display: flex;
   align-items: center;
@@ -107,6 +147,24 @@
 }
 .task-item--dragging {
   opacity: 0.4;
+}
+.task-due {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0 4px 12px;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--muted);
+}
+.task-due.is-overdue {
+  color: var(--danger);
+}
+.repeat-icon {
+  flex: none;
+  width: 12px;
+  height: 12px;
 }
 .task-date {
   flex: none;
@@ -195,6 +253,8 @@
   outline: none;
 }
 .view-inbox .task-row--completed .task-title,
+.view-today .task-row--completed .task-title,
+.view-goal .task-row--completed .task-title,
 .view-list .task-row--completed .task-title {
   color: var(--muted);
   text-decoration: line-through;
@@ -234,21 +294,48 @@
   color: currentColor;
   opacity: 0.65;
 }
-.move-pill {
+.editor-pills {
+  display: flex;
+  align-items: center;
+  margin: 10px 0 0 -8px;
+}
+.move-pill,
+.date-pill {
   display: flex;
   align-items: center;
   gap: 7px;
   max-width: 100%;
   height: 28px;
-  margin: 10px 0 0 -8px;
   padding: 0 10px 0 8px;
   border-radius: 7px;
   color: var(--muted);
   font-size: 13px;
   line-height: 18px;
 }
-.move-pill:hover {
+.move-pill:hover,
+.date-pill:hover {
   background: var(--sel);
+}
+.date-pill {
+  flex: none;
+  gap: 6px;
+  margin: 0 -8px 0 auto;
+  padding-left: 8px;
+}
+.editor-pills .move-pill {
+  min-width: 0;
+  margin-right: 4px;
+}
+.date-pill.is-overdue {
+  color: var(--danger);
+}
+.date-pill .calendar-icon {
+  width: 15px;
+  height: 15px;
+}
+.date-pill .repeat-icon {
+  width: 13px;
+  height: 13px;
 }
 .move-pill .view-icon {
   width: 16px;
@@ -349,6 +436,21 @@
 .board .task-title {
   font-size: 13px;
 }
+/* On a card, the date sits under the title. */
+.board .task-row {
+  flex-wrap: wrap;
+}
+.board .task-due {
+  flex-basis: 100%;
+  margin-top: -4px;
+  padding: 0 0 4px 26px;
+  font-size: 11px;
+  line-height: 15px;
+}
+.board .task-due .repeat-icon {
+  width: 11px;
+  height: 11px;
+}
 .board .task-editor {
   margin: 0;
   padding: 6px 10px 10px 8px;
@@ -364,13 +466,30 @@
   line-height: 18px;
   height: 36px;
 }
-.board .move-pill {
+.board .editor-pills {
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 8px 0 0 -6px;
+}
+.board .move-pill,
+.board .date-pill {
   gap: 6px;
   height: 26px;
-  margin: 8px 0 0 -6px;
   padding: 0 8px 0 6px;
   font-size: 12px;
   line-height: 16px;
+}
+.board .date-pill {
+  gap: 5px;
+  margin: 0 0 0 auto;
+}
+.board .date-pill .calendar-icon {
+  width: 13px;
+  height: 13px;
+}
+.board .date-pill .repeat-icon {
+  width: 12px;
+  height: 12px;
 }
 .board .move-pill .view-icon {
   width: 14px;

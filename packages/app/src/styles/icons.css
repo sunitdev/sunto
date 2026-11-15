@@ -6,8 +6,12 @@
 .inbox-icon {
   color: var(--accent);
 }
-.project-icon {
+.project-icon,
+.goal-icon {
   color: var(--accent);
+}
+.sidebar .goal-icon {
+  stroke-width: 2;
 }
 .area-icon {
   color: var(--area-icon);

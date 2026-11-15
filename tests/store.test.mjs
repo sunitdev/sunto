@@ -18,6 +18,12 @@ const modelURL = compile(
     'utf8',
   ),
 );
+const datesURL = compile(
+  readFileSync(
+    new URL('../packages/app/src/storage/dates.ts', import.meta.url),
+    'utf8',
+  ),
+);
 test('failed local saves retain edits for retry, and export happens only after a successful save', async () => {
   let saved;
   let fail = false;
@@ -45,7 +51,8 @@ test('failed local saves retain edits for retry, and export happens only after a
     'utf8',
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
-    .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL));
+    .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
+    .replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL));
   const store = await import(compile(source));
   await store.start();
   await store.chooseFolder();
@@ -81,7 +88,8 @@ test('trash purges to-dos trashed more than three months ago', async () => {
     'utf8',
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
-    .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL));
+    .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
+    .replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL));
   const store = await import(compile(source + '\n// purge test instance'));
   await store.start();
   const old = await store.add();
@@ -112,7 +120,8 @@ test('deleting a project trashes its to-dos, and Put Back returns them to the In
     'utf8',
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
-    .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL));
+    .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
+    .replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL));
   const store = await import(compile(source + '\n// project test instance'));
   await store.start();
   const project = await store.addList('project');
@@ -159,7 +168,8 @@ test('deleting a section keeps its to-dos in the project, and moving a to-do lea
     'utf8',
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
-    .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL));
+    .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
+    .replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL));
   const store = await import(compile(source + '\n// section test instance'));
   await store.start();
   const project = await store.addList('project');
@@ -178,4 +188,54 @@ test('deleting a section keeps its to-dos in the project, and moving a to-do lea
   assert.equal(tasks[kept].section, '');
   assert.equal(tasks[moved].list, '');
   assert.equal(tasks[moved].section, '');
+});
+test('completing a repeating to-do adds the next one, and the day plan replaces the last', async () => {
+  let saved;
+  globalThis.suntoTestRequest = async (command, data) => {
+    if (command === 'save') saved = data;
+    return command === 'load' ? { data: saved } : {};
+  };
+  const driverURL = compile(
+    'export const native = false; export const request = (command, data) => globalThis.suntoTestRequest(command, data);',
+  );
+  const source = readFileSync(
+    new URL('../packages/app/src/storage/store.ts', import.meta.url),
+    'utf8',
+  )
+    .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
+    .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
+    .replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL));
+  const store = await import(compile(source + '\n// repeat test instance'));
+  await store.start();
+  const repeat = JSON.stringify({ freq: 'daily', interval: 2 });
+  const water = await store.add('', '', {
+    title: 'Water the plants',
+    date: '2026-03-10',
+    repeat,
+    planned: '2026-03-10',
+  });
+  const once = await store.add('', '', { title: 'Once', date: '2026-03-10' });
+  await store.setCompleted(water, true);
+  await store.setCompleted(once, true);
+  let { tasks } = store.getSnapshot().state;
+  assert.equal(tasks[water].completed, true);
+  assert.equal(tasks[water].repeat, '');
+  const next = Object.values(tasks).filter(
+    (t) => t.title === 'Water the plants' && !t.completed,
+  );
+  assert.equal(next.length, 1);
+  assert.equal(next[0].date, '2026-03-12');
+  assert.equal(next[0].repeat, repeat);
+  assert.equal(next[0].planned, '');
+  assert.equal(next[0].created, tasks[water].created);
+  assert.equal(
+    Object.values(tasks).filter((t) => t.title === 'Once').length,
+    1,
+  );
+  await store.setPlan('2026-03-12', [next[0].id]);
+  await store.setPlan('2026-03-10', [once]);
+  ({ tasks } = store.getSnapshot().state);
+  assert.equal(tasks[water].planned, '');
+  assert.equal(tasks[once].planned, '2026-03-10');
+  assert.equal(tasks[next[0].id].planned, '2026-03-12');
 });

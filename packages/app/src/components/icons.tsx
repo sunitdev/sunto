@@ -38,6 +38,32 @@ export function InboxIcon({ empty = false }: { empty?: boolean }) {
     </svg>
   );
 }
+function TodayIcon() {
+  return (
+    <svg className="view-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 2.6l2.85 5.75 6.35.93-4.6 4.47 1.09 6.32L12 17.1l-5.69 2.97 1.09-6.32-4.6-4.47 6.35-.93z"
+        fill="#f2c230"
+      />
+    </svg>
+  );
+}
+export function GoalIcon() {
+  return (
+    <svg
+      className="view-icon goal-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="8.6" />
+      <circle cx="12" cy="12" r="4.6" />
+      <circle cx="12" cy="12" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
 function LogbookIcon() {
   return (
     <svg
@@ -76,6 +102,8 @@ function TrashIcon() {
 }
 const viewIcons: Record<StaticView, typeof InboxIcon> = {
   inbox: InboxIcon,
+  today: TodayIcon,
+  goal: GoalIcon,
   logbook: LogbookIcon,
   trash: TrashIcon,
 };
@@ -187,6 +215,42 @@ export function Plus() {
       aria-hidden="true"
     >
       <path d="M12 4.5v15M4.5 12h15" />
+    </svg>
+  );
+}
+export function RepeatIcon({ label }: { label?: string }) {
+  return (
+    <svg
+      className="repeat-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...(label
+        ? { role: 'img', 'aria-label': label }
+        : { 'aria-hidden': true })}
+    >
+      <path d="M4 11a7 7 0 0 1 12-4.9L18 8M20 13a7 7 0 0 1-12 4.9L6 16" />
+      <path d="M18 4v4h-4M6 20v-4h4" />
+    </svg>
+  );
+}
+export function CalendarIcon() {
+  return (
+    <svg
+      className="calendar-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3.5" y="5" width="17" height="15.5" rx="3" />
+      <path d="M3.5 9.5h17M8 3v4M16 3v4" />
     </svg>
   );
 }

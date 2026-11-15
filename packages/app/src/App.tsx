@@ -1,12 +1,16 @@
 import { useCallback, useState, useSyncExternalStore } from 'react';
 import * as store from './storage/store';
 import type { Task } from './storage/model';
+import { dayKey } from './storage/dates';
 import {
   completedTime,
+  dayPlan,
+  groupByList,
   groupTasks,
   organize,
   visibleTasks,
 } from './storage/selectors';
+import { useDailyTarget } from './hooks/useDailyTarget';
 import { useEditor } from './hooks/useEditor';
 import { usePhone } from './hooks/usePhone';
 import { useSync } from './hooks/useSync';
@@ -24,7 +28,9 @@ import { AreaProjects } from './components/AreaProjects';
 import { Board } from './components/Board';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { ContextMenu } from './components/ContextMenu';
+import { DatePopover } from './components/DatePopover';
 import { Footer } from './components/Footer';
+import { GoalCard, Planner, PlanPrompt } from './components/Goal';
 import { InboxIcon, ViewIcon } from './components/icons';
 import { ListHeader } from './components/ListHeader';
 import { MovePopover } from './components/MovePopover';
@@ -48,18 +54,27 @@ export function App() {
   );
   const [settings, setSettings] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  // The edited to-do's list picker, and the bounds of the button opening it.
+  // The edited to-do's list and date pickers, and the bounds of the button
+  // opening each.
   const [moving, setMoving] = useState<DOMRect | null>(null);
+  const [dating, setDating] = useState<DOMRect | null>(null);
   const closeMenu = useCallback(() => setMenu(null), []);
   const closeMove = useCallback(() => setMoving(null), []);
-  // The picker closes with the editor, so it can't reopen with the next one.
+  const closeDate = useCallback(() => setDating(null), []);
+  // The pickers close with the editor, so they can't reopen with the next one.
   const [movingFor, setMovingFor] = useState(editing);
   if (movingFor !== editing) {
     setMovingFor(editing);
     setMoving(null);
+    setDating(null);
   }
+  // The to-dos picked while planning the day, before they are saved.
+  const [planning, setPlanning] = useState<string[] | null>(null);
+  const [target, setTarget] = useDailyTarget();
+  const today = dayKey();
   const library = organize(state);
   const { projects, lists, todos, sectionsOf, areaOf, progress } = library;
+  const day = dayPlan(library, today);
   // The phone layout has no navigation, so it always shows the Inbox.
   const view: View =
     phone || !(isStatic(selectedView) || lists[selectedView])
@@ -68,15 +83,20 @@ export function App() {
   const openList = isStatic(view) ? undefined : lists[view];
   const tasks = visibleTasks(library, view, {
     list: openList?.id ?? '',
+    today,
     editing,
     lingering,
     phone,
   });
   const project = openList?.kind === 'project' ? openList : undefined;
-  const groups = groupTasks(
-    tasks,
-    view,
-    project ? sectionsOf(project.id) : [],
+  // Today's Goal shows its to-dos once the day is planned.
+  const planned = view === 'goal' && !planning && day.goal.length > 0;
+  const groups = (
+    view === 'today' || planned
+      ? groupByList(tasks, library)
+      : view === 'goal'
+        ? []
+        : groupTasks(tasks, view, project ? sectionsOf(project.id) : [])
   ).map((group) => ({
     ...group,
     label:
@@ -105,7 +125,7 @@ export function App() {
     tasks: shown,
     selected,
     select: setSelected,
-    paused: !!editing || !!menu,
+    paused: !!editing || !!menu || (view === 'goal' && !!planning),
     remove,
     edit: setEditing,
   });
@@ -119,7 +139,9 @@ export function App() {
     void store.setCompleted(task.id, completed);
     // Completed to-dos stay briefly in their list before moving to the Logbook.
     const linger =
-      completed && (view === 'inbox' || !!openList) && !task.trashed;
+      completed &&
+      (view === 'inbox' || view === 'today' || !!openList) &&
+      !task.trashed;
     setLinger(task.id, linger);
     if (linger) setTimeout(() => setLinger(task.id, false), 900);
   }
@@ -137,15 +159,31 @@ export function App() {
     setSelectedView(next);
   }
   async function addTask(section = '') {
-    // New to-dos join the open project or area; elsewhere they go to the Inbox.
+    // New to-dos join the open project or area; elsewhere they go to the
+    // Inbox. In Today they are due today, and in the goal they also join it.
     if (editing) closeEditor();
-    if (!openList) setSelectedView('inbox');
-    const id = await store.add(openList?.id, section);
+    const dated = view === 'today' || view === 'goal';
+    if (!openList && !dated) setSelectedView('inbox');
+    if (view === 'goal') setPlanning(null);
+    const id = await store.add(
+      openList?.id,
+      section,
+      dated ? { date: today, planned: view === 'goal' ? today : '' } : {},
+    );
     if (store.getSnapshot().state.tasks[id]) setEditing(id);
   }
   function addSection() {
     if (editing) closeEditor();
     if (project) void store.addList('section', project.id);
+  }
+  function startPlanning() {
+    if (editing) closeEditor();
+    setSelected(null);
+    setPlanning(day.goal.map((t) => t.id));
+  }
+  function finishPlanning() {
+    if (planning) void store.setPlan(today, planning);
+    setPlanning(null);
   }
   function moveTo(list: string) {
     setMoving(null);
@@ -179,6 +217,7 @@ export function App() {
       : [];
   const itemProps = {
     view,
+    today,
     phone,
     editing,
     selected,
@@ -194,6 +233,7 @@ export function App() {
       setMenu({ id: task.id, x, y });
     },
     onMove: (_task: Task, anchor: DOMRect) => setMoving(anchor),
+    onDate: (_task: Task, anchor: DOMRect) => setDating(anchor),
   };
   const settingsToggle = (
     <button
@@ -208,6 +248,8 @@ export function App() {
     <div className={`inbox-app${editing ? ' is-editing' : ''}`}>
       <Sidebar
         library={library}
+        day={day}
+        today={today}
         view={view}
         show={showView}
         openMenu={setMenu}
@@ -254,6 +296,34 @@ export function App() {
               openMenu={setMenu}
             />
           )}
+          {view === 'goal' &&
+            (planning ? (
+              <Planner
+                library={library}
+                due={day.due}
+                today={today}
+                picked={planning}
+                target={target}
+                setTarget={setTarget}
+                toggle={(id) =>
+                  setPlanning(
+                    planning.includes(id)
+                      ? planning.filter((p) => p !== id)
+                      : [...planning, id],
+                  )
+                }
+                cancel={() => setPlanning(null)}
+                finish={finishPlanning}
+              />
+            ) : planned ? (
+              <GoalCard goal={day.goal} edit={startPlanning} />
+            ) : (
+              <PlanPrompt
+                due={day.due.length}
+                target={target}
+                start={startPlanning}
+              />
+            ))}
           {view === 'trash' && tasks.length > 0 && (
             <button
               className="empty-trash"
@@ -280,10 +350,11 @@ export function App() {
               groups={groups}
               label={`${openList ? openList.title || untitled(openList) : titles[view as StaticView]} tasks`}
               addTask={project && ((section) => void addTask(section))}
+              showList={showView}
               {...itemProps}
             />
           )}
-          {tasks.length === 0 && !openList && (
+          {tasks.length === 0 && !openList && view !== 'goal' && (
             <div className="empty-state">
               <InboxIcon empty />
               <span>
@@ -313,6 +384,14 @@ export function App() {
           anchor={moving}
           move={moveTo}
           close={closeMove}
+        />
+      )}
+      {dating && movingTask && (
+        <DatePopover
+          task={movingTask}
+          today={today}
+          anchor={dating}
+          close={closeDate}
         />
       )}
       {menuTask && (
