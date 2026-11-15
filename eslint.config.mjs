@@ -24,7 +24,7 @@ export default tseslint.config(
     rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
   {
-    files: ['packages/app/src/**/*.{jsx,tsx}'],
+    files: ['packages/app/src/**/*.{ts,tsx}'],
     extends: [reactHooks.configs.flat.recommended],
   },
   {
