@@ -67,3 +67,34 @@ test('failed local saves retain edits for retry, and export happens only after a
   assert.equal(exports, before + 1);
   delete globalThis.suntoTestRequest;
 });
+test('trash purges to-dos trashed more than three months ago', async () => {
+  let saved;
+  globalThis.suntoTestRequest = async (command, data) => {
+    if (command === 'save') saved = data;
+    return command === 'load' ? { data: saved } : {};
+  };
+  const driverURL = compile(
+    'export const native = false; export const request = (command, data) => globalThis.suntoTestRequest(command, data);',
+  );
+  const source = readFileSync(
+    new URL('../packages/app/src/storage/store.ts', import.meta.url),
+    'utf8',
+  )
+    .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
+    .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL));
+  const store = await import(compile(source + '\n// purge test instance'));
+  await store.start();
+  const old = await store.add();
+  const recent = await store.add();
+  const kept = await store.add();
+  const fourMonthsAgo = new Date();
+  fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
+  await store.update(old, { trashed: true, trashedAt: +fourMonthsAgo });
+  await store.update(recent, { trashed: true, trashedAt: Date.now() - 1000 });
+  await store.purgeTrash();
+  const { tasks } = store.getSnapshot().state;
+  assert.equal(tasks[old].deleted, true);
+  assert.equal(tasks[recent].deleted, false);
+  assert.equal(tasks[kept].deleted, false);
+  assert.equal(JSON.parse(saved).tasks[old].deleted, true);
+});

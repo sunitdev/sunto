@@ -52,10 +52,37 @@ export const subscribe = (listener: () => void) => {
   };
 };
 export const getSnapshot = () => snapshot;
-export function update(id: string, patch: Partial<Fields>) {
+export function updateAll(changes: [string, Partial<Fields>][]) {
   return run(async () => {
     if (!ready) throw Error('Storage is not ready');
-    await persist(mutate(state, id, patch));
+    await persist(
+      changes.reduce((next, [id, patch]) => mutate(next, id, patch), state),
+    );
+    if (folder) {
+      syncStatus = 'Changes pending';
+      emit();
+    }
+  });
+}
+export const update = (id: string, patch: Partial<Fields>) =>
+  updateAll([[id, patch]]);
+export const setTrashed = (id: string, trashed: boolean) =>
+  update(id, { trashed, trashedAt: trashed ? Date.now() : 0 });
+export const setCompleted = (id: string, completed: boolean) =>
+  update(id, { completed, completedAt: completed ? Date.now() : 0 });
+// Trashed to-dos are permanently deleted three months after being trashed.
+export function purgeTrash() {
+  return run(async () => {
+    if (!ready) return;
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - 3);
+    const expired = Object.values(state.tasks).filter(
+      (t) => t.trashed && !t.deleted && t.trashedAt && t.trashedAt < +cutoff,
+    );
+    if (!expired.length) return;
+    await persist(
+      expired.reduce((next, t) => mutate(next, t.id, { deleted: true }), state),
+    );
     if (folder) {
       syncStatus = 'Changes pending';
       emit();
@@ -68,6 +95,9 @@ export async function add() {
     title: '',
     notes: '',
     completed: false,
+    completedAt: 0,
+    trashed: false,
+    trashedAt: 0,
     deleted: false,
     created: Date.now(),
   });

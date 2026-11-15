@@ -91,3 +91,31 @@ test('native JSON key ordering does not turn duplicate changes into conflicts', 
   };
   assert.equal(merge(s, reordered), s);
 });
+test('completion and trash fields validate their types and default for older tasks', () => {
+  const legacy = mutate(emptyState(), 'task', { title: 'Old', created: 1 });
+  assert.equal(legacy.tasks.task.completedAt, 0);
+  assert.equal(legacy.tasks.task.trashed, false);
+  const trashed = mutate(legacy, 'task', {
+    completed: true,
+    completedAt: 5,
+    trashed: true,
+    trashedAt: 6,
+  });
+  assert.equal(trashed.tasks.task.completedAt, 5);
+  assert.equal(trashed.tasks.task.trashed, true);
+  for (const patch of [
+    { completedAt: true },
+    { trashed: 1 },
+    { trashedAt: '6' },
+  ])
+    assert.throws(() =>
+      merge(legacy, {
+        version: 1,
+        id: 'id',
+        device: 'd',
+        task: 'task',
+        revision: 9,
+        patch,
+      }),
+    );
+});

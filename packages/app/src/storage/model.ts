@@ -2,6 +2,9 @@ export type Fields = {
   title: string;
   notes: string;
   completed: boolean;
+  completedAt: number;
+  trashed: boolean;
+  trashedAt: number;
   deleted: boolean;
   created: number;
 };
@@ -31,7 +34,17 @@ export const emptyState = (): State => ({
   tasks: {},
   changes: {},
 });
-const keys = ['title', 'notes', 'completed', 'deleted', 'created'];
+const keys = [
+  'title',
+  'notes',
+  'completed',
+  'completedAt',
+  'trashed',
+  'trashedAt',
+  'deleted',
+  'created',
+];
+const numbers = ['created', 'completedAt', 'trashedAt'];
 export function validateChange(value: unknown): Change {
   const c = value as Change;
   if (
@@ -52,7 +65,7 @@ export function validateChange(value: unknown): Change {
   for (const [key, v] of Object.entries(c.patch)) {
     if (
       !keys.includes(key) ||
-      (key === 'created'
+      (numbers.includes(key)
         ? typeof v !== 'number' || !Number.isFinite(v)
         : typeof v !==
           (key === 'title' || key === 'notes' ? 'string' : 'boolean'))
@@ -85,6 +98,9 @@ export function merge(state: State, input: unknown): State {
       title: '',
       notes: '',
       completed: false,
+      completedAt: 0,
+      trashed: false,
+      trashedAt: 0,
       deleted: false,
       created: 0,
       stamps: {},
