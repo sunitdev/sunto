@@ -1,0 +1,135 @@
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../assets/inter-latin.woff2') format('woff2');
+}
+:root {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, system-ui,
+    sans-serif;
+  color-scheme: light dark;
+  color: var(--fg);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --accent: #2570e0;
+  --gutter: max(28px, calc((100% - 540px) / 2));
+  --bg: #fff;
+  --side: #f3f3f5;
+  --bar: #fff;
+  --line: rgb(0 0 0 / 8%);
+  --rule: rgb(0 0 0 / 12%);
+  --sel: rgb(0 0 0 / 7%);
+  --card: #fff;
+  --fg: #1d1d1f;
+  --muted: #68686d;
+  --icon: #86868b;
+  --box: #8e9299;
+  --link: var(--accent);
+  --date: var(--accent);
+  --trash-body: #b4b4ba;
+  --trash-rim: #d4d4d9;
+  --pie: #8e8e93;
+  --area-icon: #2e9c78;
+  --drop-fill: rgb(37 112 224 / 8%);
+  --pop: #fff;
+  --pop-border: rgb(0 0 0 / 10%);
+  --error-bg: #fff0ef;
+  --selection: color-mix(in srgb, var(--accent) 16%, var(--bg));
+  --menu: rgb(246 246 246 / 92%);
+  --menu-shadow: 0 0 0 0.5px rgb(0 0 0 / 18%), 0 10px 30px rgb(0 0 0 / 18%);
+  --shadow:
+    0 0 0 0.5px rgb(0 0 0 / 6%), 0 2px 6px rgb(0 0 0 / 10%),
+    0 10px 28px rgb(0 0 0 / 10%);
+}
+@media (width < 700px) {
+  :root {
+    --muted: #767676;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #2e2e2e;
+    --side: #292929;
+    --bar: #2a2a2a;
+    --line: rgb(255 255 255 / 8%);
+    --rule: rgb(255 255 255 / 14%);
+    --sel: rgb(255 255 255 / 9%);
+    --card: #3a3a3a;
+    --fg: #f2f2f2;
+    --muted: #a0a0a0;
+    --icon: #9a9a9a;
+    --box: #8a8a8a;
+    --link: #6caeff;
+    --date: #7aa7f7;
+    --trash-body: #d4d4d4;
+    --trash-rim: #f0f0f0;
+    --pie: #a8a8a8;
+    --area-icon: #5cc4a0;
+    --drop-fill: rgb(122 167 247 / 12%);
+    --pop: #38383a;
+    --pop-border: rgb(255 255 255 / 10%);
+    --error-bg: #4a2a28;
+    --selection: color-mix(in srgb, var(--accent) 32%, var(--bg));
+    --menu: rgb(44 44 46 / 92%);
+    --menu-shadow:
+      0 0 0 0.5px rgb(255 255 255 / 14%), 0 10px 30px rgb(0 0 0 / 50%);
+    --shadow: 0 0 0 0.5px rgb(255 255 255 / 8%), 0 8px 24px rgb(0 0 0 / 45%);
+  }
+}
+@media (prefers-color-scheme: dark) and (width < 700px) {
+  :root {
+    --bg: #000;
+    --side: #1c1c1e;
+    --card: #1c1c1e;
+    --fg: #f2f2f7;
+    --muted: #9c9ca3;
+    --box: #7c7c84;
+    --shadow: 0 0 0 0.5px rgb(255 255 255 / 10%), 0 12px 32px rgb(0 0 0 / 70%);
+  }
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input,
+textarea {
+  font: inherit;
+}
+button {
+  color: inherit;
+  cursor: pointer;
+}
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+button {
+  border: 0;
+  background: none;
+  padding: 0;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: wait;
+}
+.untitled {
+  color: var(--muted);
+}
+@media (width < 700px) {
+  :root {
+    font-family:
+      Inter,
+      -apple-system,
+      BlinkMacSystemFont,
+      'SF Pro Text',
+      system-ui,
+      sans-serif;
+  }
+}

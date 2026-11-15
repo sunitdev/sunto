@@ -1,0 +1,24 @@
+.storage-panel {
+  margin: 0 24px 16px;
+  padding: 16px;
+  background: var(--side);
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.storage-panel p {
+  margin: 8px 0;
+}
+.storage-panel button,
+.save-error button {
+  color: var(--link);
+  padding: 8px;
+  margin-right: 8px;
+}
+.save-error {
+  margin: 0 24px 12px;
+  padding: 12px;
+  background: var(--error-bg);
+  border-radius: 8px;
+  font-size: 14px;
+}

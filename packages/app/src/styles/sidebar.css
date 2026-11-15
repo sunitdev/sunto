@@ -1,0 +1,143 @@
+.sidebar {
+  flex: none;
+  width: 220px;
+  background: var(--side);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 52px 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sidebar-nav > *,
+.sidebar-group > * {
+  flex: none;
+}
+.sidebar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-radius: 8px;
+}
+.sidebar-loose {
+  margin-top: 18px;
+  min-height: 30px;
+}
+.sidebar-area {
+  margin-top: 16px;
+}
+.sidebar-area > .sidebar-item:first-child {
+  font-weight: 700;
+}
+.sidebar-group.is-drop {
+  background: var(--drop-fill);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.sidebar-footer {
+  flex: none;
+  position: relative;
+  height: 44px;
+  padding: 0 8px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+}
+.new-list {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 12px 0 8px;
+  border-radius: 15px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+}
+.new-list[aria-expanded='true'] {
+  background: var(--sel);
+}
+.new-list svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
+}
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 7px;
+  text-align: left;
+  cursor: default;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+.sidebar-nav > .sidebar-item:first-child {
+  margin-bottom: 18px;
+}
+.sidebar-item[aria-current='page'] {
+  background: var(--sel);
+}
+.sidebar-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-count {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+.new-list-menu {
+  left: 8px;
+  bottom: calc(100% + 6px);
+  width: 300px;
+}
+.new-list-menu > button {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: left;
+}
+.new-list-menu > button:hover {
+  background: var(--sel);
+}
+.new-list-menu .view-icon {
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+}
+.new-list-menu > button > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--muted);
+}
+.new-list-menu strong {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--fg);
+}
+@media (width < 700px) {
+  .sidebar {
+    display: none;
+  }
+}

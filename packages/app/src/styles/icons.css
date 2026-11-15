@@ -1,0 +1,50 @@
+.view-icon {
+  flex: none;
+  width: 26px;
+  height: 26px;
+}
+.inbox-icon {
+  color: var(--accent);
+}
+.project-icon {
+  color: var(--accent);
+}
+.area-icon {
+  color: var(--area-icon);
+}
+.sidebar .project-icon,
+.sidebar .area-icon {
+  color: var(--pie);
+}
+.emoji-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  line-height: 1;
+}
+.sidebar .emoji-icon,
+.area-projects .emoji-icon {
+  font-size: 15px;
+}
+.trash-body {
+  fill: var(--trash-body);
+}
+.trash-rim {
+  fill: var(--trash-rim);
+}
+.sidebar .view-icon {
+  width: 18px;
+  height: 18px;
+}
+.phone-glyph {
+  display: none;
+}
+@media (width < 700px) {
+  .desktop-glyph {
+    display: none;
+  }
+  .phone-glyph {
+    display: block;
+  }
+}

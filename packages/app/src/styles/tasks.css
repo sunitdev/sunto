@@ -1,0 +1,229 @@
+.task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.area-projects {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+}
+.area-projects button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 4px 0;
+  text-align: left;
+  cursor: default;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+.area-projects .view-icon {
+  width: 18px;
+  height: 18px;
+}
+.task-group + .task-group {
+  margin-top: 26px;
+}
+.task-group h2 {
+  margin: 0 0 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+}
+.task-date {
+  flex: none;
+  padding: 4px 8px 4px 0;
+  font-size: 12px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--date);
+}
+.empty-trash {
+  align-self: flex-start;
+  margin-bottom: 18px;
+  padding: 5px 14px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.task-row {
+  display: flex;
+  align-items: flex-start;
+}
+.task-check {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.task-box {
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--box);
+  border-radius: 4px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.task-box svg {
+  width: 10px;
+  height: 10px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.task-title {
+  flex: 1;
+  min-width: 0;
+  min-height: 28px;
+  padding: 4px 0;
+  text-align: left;
+  cursor: default;
+  font-size: 14px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+  transition: color 0.15s;
+}
+.task-title > span {
+  display: block;
+}
+.task-title > .task-list-name {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+}
+.task-row--completed .task-box {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.task-row--completed .task-box svg {
+  opacity: 1;
+}
+.task-item--selected:not(.task-item--editing) .task-row {
+  margin: 0 -8px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: var(--selection);
+}
+.task-item--selected .task-title:focus-visible {
+  outline: none;
+}
+.view-inbox .task-row--completed .task-title,
+.view-list .task-row--completed .task-title {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.task-editor {
+  margin: 6px -14px 14px;
+  padding: 10px 16px 14px 14px;
+  border-radius: 11px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.task-editor input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 4px 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: inherit;
+}
+.task-editor textarea {
+  display: block;
+  width: calc(100% - 28px);
+  margin: 2px 0 0 28px;
+  padding: 0;
+  border: 0;
+  resize: none;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  line-height: 19px;
+  height: 38px;
+}
+.task-editor input::placeholder,
+.task-editor textarea::placeholder {
+  color: currentColor;
+  opacity: 0.65;
+}
+.editor-actions {
+  display: none;
+}
+.task-editor input,
+.task-editor textarea {
+  outline: none;
+}
+@media (width < 700px) {
+  .task-check {
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+  }
+  .task-box {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+  }
+  .task-box svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 3;
+  }
+  .task-title {
+    min-height: 44px;
+    padding: 11px 0;
+    font-size: 17px;
+    line-height: 22px;
+    cursor: text;
+  }
+  .task-item {
+    transition: opacity 0.2s;
+  }
+  .is-editing .task-item:not(.task-item--editing) {
+    opacity: 0.3;
+  }
+  .task-editor {
+    margin: 6px -6px;
+    padding: 2px 8px 6px 6px;
+    border-radius: 12px;
+  }
+  .task-editor input {
+    padding: 11px 0;
+    font-size: 17px;
+    line-height: 22px;
+  }
+  .task-editor textarea {
+    width: calc(100% - 44px);
+    margin: 0 0 0 44px;
+    font-size: 15px;
+    line-height: 21px;
+    height: 63px;
+  }
+  .editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 4px;
+  }
+  .editor-actions button {
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--link);
+  }
+}
