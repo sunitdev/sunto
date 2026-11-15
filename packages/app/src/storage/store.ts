@@ -94,11 +94,12 @@ export function purgeTrash() {
     }
   });
 }
-export async function add(list = '') {
+export async function add(list = '', section = '') {
   const id = crypto.randomUUID();
   await update(id, {
     kind: 'task',
     list,
+    section,
     title: '',
     notes: '',
     completed: false,
@@ -110,11 +111,12 @@ export async function add(list = '') {
   });
   return id;
 }
-export async function addList(kind: 'project' | 'area') {
+// A new project or area, or a section of the project `list`.
+export async function addList(kind: 'project' | 'area' | 'section', list = '') {
   const id = crypto.randomUUID();
   await update(id, {
     kind,
-    list: '',
+    list,
     icon: '',
     title: '',
     notes: '',
@@ -123,21 +125,35 @@ export async function addList(kind: 'project' | 'area') {
   });
   return id;
 }
-// The project can't be restored; its to-dos move to Trash and Put Back
-// returns them to the Inbox, remembering the project's name meanwhile.
+export const move = (id: string, list: string) =>
+  update(id, { list, section: '' });
+// The section's to-dos stay in its project, outside any section.
+export function deleteSection(id: string) {
+  const tasks = Object.values(state.tasks).filter(
+    (t) => t.kind === 'task' && t.section === id && !t.deleted,
+  );
+  return updateAll([
+    ...tasks.map((t): [string, Partial<Fields>] => [t.id, { section: '' }]),
+    [id, { deleted: true }],
+  ]);
+}
+// The project and its sections can't be restored; its to-dos move to Trash
+// and Put Back returns them to the Inbox, remembering the project's name
+// meanwhile.
 export function deleteProject(id: string) {
   const project = state.tasks[id];
   if (!project) return Promise.resolve();
   const now = Date.now();
-  const tasks = Object.values(state.tasks).filter(
-    (t) => t.kind === 'task' && t.list === id && !t.deleted,
+  const children = Object.values(state.tasks).filter(
+    (t) => t.list === id && !t.deleted,
   );
   return updateAll([
-    ...tasks.map((t): [string, Partial<Fields>] => [
+    ...children.map((t): [string, Partial<Fields>] => [
       t.id,
-      t.title.trim()
+      t.kind === 'task' && t.title.trim()
         ? {
             list: '',
+            section: '',
             deletedFrom: project.title || 'New Project',
             trashed: true,
             trashedAt: t.trashed ? t.trashedAt : now,

@@ -135,6 +135,32 @@ export function ListIcon({ list, progress }: { list: Task; progress: number }) {
     <ProjectIcon progress={progress} />
   );
 }
+// The Inbox where a to-do's list is shown, as in the editor's list button.
+export function TrayIcon() {
+  return (
+    <svg
+      className="view-icon tray-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3.5 13l2.4-6.4A1.6 1.6 0 0 1 7.4 5.5h9.2a1.6 1.6 0 0 1 1.5 1.1L20.5 13v4.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />
+      <path d="M3.5 13h4.6l1.2 2.2h5.4l1.2-2.2h4.6" />
+    </svg>
+  );
+}
+export function MoreIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <circle cx="5" cy="12" r="1.9" />
+      <circle cx="12" cy="12" r="1.9" />
+      <circle cx="19" cy="12" r="1.9" />
+    </svg>
+  );
+}
 export function ToolbarIcon({ d }: { d: string }) {
   return (
     <svg

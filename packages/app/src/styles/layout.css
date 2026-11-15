@@ -22,22 +22,8 @@
   padding-top: 52px;
   padding-bottom: 6px;
 }
-.icon-anchor {
-  flex: none;
-  position: relative;
-}
-.emoji-field {
-  position: absolute;
-  top: 0;
-  left: -5px;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: 0;
-  opacity: 0;
-  pointer-events: none;
-}
 .icon-button {
+  flex: none;
   width: 36px;
   height: 36px;
   margin-left: -5px;
@@ -55,8 +41,10 @@ h1 {
   letter-spacing: -0.3px;
 }
 .list-title {
-  flex: 1;
-  min-width: 0;
+  flex: 0 1 auto;
+  field-sizing: content;
+  min-width: 40px;
+  max-width: 100%;
   padding: 0;
   border: 0;
   outline: none;
@@ -82,6 +70,20 @@ h1 {
 .list-notes::placeholder {
   color: currentColor;
   opacity: 0.55;
+}
+.list-actions {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--icon);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.list-actions svg {
+  width: 20px;
+  height: 20px;
 }
 .settings-toggle {
   position: absolute;
@@ -109,6 +111,14 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 72px;
+}
+/* A board spans the window, scrolling sideways to the right edge. */
+.view-board {
+  --gutter: 28px;
+}
+.view-board .task-scroll {
+  padding-right: 0;
 }
 .add-button,
 .footer-button {

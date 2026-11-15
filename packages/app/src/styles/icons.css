@@ -13,8 +13,14 @@
   color: var(--area-icon);
 }
 .sidebar .project-icon,
-.sidebar .area-icon {
+.sidebar .area-icon,
+.move-pill .view-icon,
+.move-popover .project-icon,
+.move-popover .area-icon {
   color: var(--pie);
+}
+.move-pill .tray-icon {
+  color: var(--icon);
 }
 .emoji-icon {
   display: flex;
@@ -24,8 +30,12 @@
   line-height: 1;
 }
 .sidebar .emoji-icon,
-.area-projects .emoji-icon {
+.area-projects .emoji-icon,
+.move-popover .emoji-icon {
   font-size: 15px;
+}
+.move-pill .emoji-icon {
+  font-size: 14px;
 }
 .trash-body {
   fill: var(--trash-body);

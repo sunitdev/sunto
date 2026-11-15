@@ -127,11 +127,29 @@ test('list fields validate their types and default older records to Inbox to-dos
   const moved = mutate(project, 'task', { list: 'project' });
   assert.equal(moved.tasks.project.kind, 'project');
   assert.equal(moved.tasks.task.list, 'project');
+  assert.equal(moved.tasks.task.section, '');
+  assert.equal(moved.tasks.project.kanban, false);
+  const section = mutate(moved, 'section', {
+    kind: 'section',
+    list: 'project',
+  });
+  const sorted = mutate(
+    mutate(section, 'task', { section: 'section' }),
+    'project',
+    {
+      kanban: true,
+    },
+  );
+  assert.equal(sorted.tasks.section.kind, 'section');
+  assert.equal(sorted.tasks.task.section, 'section');
+  assert.equal(sorted.tasks.project.kanban, true);
   for (const patch of [
     { kind: 'folder' },
     { list: null },
     { icon: 1 },
     { deletedFrom: false },
+    { section: 1 },
+    { kanban: 'yes' },
   ])
     assert.throws(() =>
       merge(legacy, {

@@ -1,9 +1,13 @@
-// One record type holds to-dos, projects and areas, distinguished by kind.
-// `list` is a to-do's project or area, or a project's area ('' for none).
-export type Kind = 'task' | 'project' | 'area';
+// One record type holds to-dos, projects, areas and project sections,
+// distinguished by kind. `list` is a to-do's project or area, a project's
+// area, or a section's project ('' for none). `section` is a to-do's section
+// within its project, and `kanban` shows a project as a board of sections.
+export type Kind = 'task' | 'project' | 'area' | 'section';
 export type Fields = {
   kind: Kind;
   list: string;
+  section: string;
+  kanban: boolean;
   icon: string;
   deletedFrom: string;
   title: string;
@@ -44,6 +48,8 @@ export const emptyState = (): State => ({
 const keys = [
   'kind',
   'list',
+  'section',
+  'kanban',
   'icon',
   'deletedFrom',
   'title',
@@ -56,8 +62,16 @@ const keys = [
   'created',
 ];
 const numbers = ['created', 'completedAt', 'trashedAt'];
-const strings = ['kind', 'list', 'icon', 'deletedFrom', 'title', 'notes'];
-const kinds = ['task', 'project', 'area'];
+const strings = [
+  'kind',
+  'list',
+  'section',
+  'icon',
+  'deletedFrom',
+  'title',
+  'notes',
+];
+const kinds = ['task', 'project', 'area', 'section'];
 export function validateChange(value: unknown): Change {
   const c = value as Change;
   if (
@@ -110,6 +124,8 @@ export function merge(state: State, input: unknown): State {
       id: c.task,
       kind: 'task',
       list: '',
+      section: '',
+      kanban: false,
       icon: '',
       deletedFrom: '',
       title: '',

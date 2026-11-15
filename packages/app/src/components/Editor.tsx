@@ -1,17 +1,28 @@
 import * as store from '../storage/store';
 import type { Task } from '../storage/model';
 import { useDraft } from '../hooks/useDraft';
+import { untitled } from '../views';
 import { Check } from './Check';
+import { ListIcon, TrayIcon } from './icons';
 
+// `list` is the to-do's project or area, shown on a button that opens
+// `onMove` with the button's bounds.
 export function Editor({
   task,
+  list,
+  progress,
   close,
   onToggle,
+  onMove,
 }: {
   task: Task;
+  list?: Task;
+  progress: number;
   close: () => void;
   onToggle: (task: Task) => void;
+  onMove?: (anchor: DOMRect) => void;
 }) {
+  const listLabel = list ? list.title || untitled(list) : 'Inbox';
   const { draft, latest, change, flush } = useDraft(task);
   const { title, notes } = draft;
   function done() {
@@ -51,6 +62,17 @@ export function Editor({
           if (!e.nativeEvent.isComposing && e.key === 'Escape') done();
         }}
       />
+      {onMove && (
+        <button
+          className="move-pill"
+          aria-label={`Move to another list. Currently in ${listLabel}`}
+          aria-haspopup="dialog"
+          onClick={(e) => onMove(e.currentTarget.getBoundingClientRect())}
+        >
+          {list ? <ListIcon list={list} progress={progress} /> : <TrayIcon />}
+          <span>{listLabel}</span>
+        </button>
+      )}
       <div className="editor-actions">
         <button onClick={done}>Done</button>
       </div>

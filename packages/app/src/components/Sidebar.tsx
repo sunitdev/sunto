@@ -2,6 +2,7 @@ import { useState, type DragEvent } from 'react';
 import * as store from '../storage/store';
 import type { Task } from '../storage/model';
 import type { Library } from '../storage/selectors';
+import { taskDropTarget } from '../drag';
 import { titles, untitled, type View } from '../views';
 import { ListIcon, ViewIcon } from './icons';
 import { NewListMenu } from './NewListMenu';
@@ -19,10 +20,33 @@ export function Sidebar({
   openMenu: (menu: { id: string; x: number; y: number }) => void;
   addList: (kind: 'project' | 'area') => void;
 }) {
-  const { areas, projects, lists, areaOf, progress, inboxCount } = library;
+  const {
+    areas,
+    projects,
+    lists,
+    todos,
+    listOf,
+    areaOf,
+    progress,
+    inboxCount,
+  } = library;
   // The project being dragged, and the area it would join ('' for none).
   const [drag, setDrag] = useState<string | null>(null);
   const [drop, setDrop] = useState<string | null>(null);
+  // The list ('' for the Inbox) that a dragged to-do would move to.
+  const [taskDrop, setTaskDrop] = useState<string | null>(null);
+  function taskTarget(list: string) {
+    return taskDropTarget(
+      (over) =>
+        setTaskDrop((current) =>
+          over ? list : current === list ? null : current,
+        ),
+      (id) => {
+        const task = todos.find((t) => t.id === id);
+        if (task && listOf(task) !== list) void store.move(id, list);
+      },
+    );
+  }
   const looseProjects = projects.filter((p) => !areaOf(p));
   const dragging = drag ? lists[drag] : undefined;
   function dropZone(area: string) {
@@ -55,8 +79,9 @@ export function Sidebar({
     return (
       <button
         key={list.id}
-        className="sidebar-item"
+        className={`sidebar-item${taskDrop === list.id ? ' is-drop' : ''}`}
         aria-current={view === list.id ? 'page' : undefined}
+        {...taskTarget(list.id)}
         draggable={project}
         onDragStart={(e) => {
           e.dataTransfer.effectAllowed = 'move';
@@ -87,8 +112,9 @@ export function Sidebar({
         {(['inbox', 'logbook', 'trash'] as const).map((v) => (
           <button
             key={v}
-            className="sidebar-item"
+            className={`sidebar-item${v === 'inbox' && taskDrop === '' ? ' is-drop' : ''}`}
             aria-current={view === v ? 'page' : undefined}
+            {...(v === 'inbox' && taskTarget(''))}
             onClick={() => show(v)}
           >
             <ViewIcon view={v} />

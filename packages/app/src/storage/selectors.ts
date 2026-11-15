@@ -4,12 +4,14 @@ import type { State, Task } from './model';
 
 export const completedTime = (t: Task) => t.completedAt || t.created;
 
-// The live areas, projects and to-dos, and how they belong to each other.
+const oldestFirst = (a: Task, b: Task) =>
+  a.created - b.created || a.id.localeCompare(b.id);
+
+// The live areas, projects, sections and to-dos, and how they belong to each
+// other.
 export function organize(state: State) {
   const live = Object.values(state.tasks).filter((t) => !t.deleted);
-  const areas = live
-    .filter((t) => t.kind === 'area')
-    .sort((a, b) => a.created - b.created || a.id.localeCompare(b.id));
+  const areas = live.filter((t) => t.kind === 'area').sort(oldestFirst);
   const projects = live
     .filter((t) => t.kind === 'project')
     .sort((a, b) => b.created - a.created || a.id.localeCompare(b.id));
@@ -17,6 +19,10 @@ export function organize(state: State) {
     [...areas, ...projects].map((l) => [l.id, l]),
   );
   const todos = live.filter((t) => t.kind === 'task');
+  const sections = live.filter((t) => t.kind === 'section').sort(oldestFirst);
+  // A project's sections, in the order they were added.
+  const sectionsOf = (project: string) =>
+    sections.filter((s) => s.list === project);
   // To-dos whose project was deleted on another device fall back to the Inbox.
   const listOf = (t: Task) => (lists[t.list] ? t.list : '');
   const areaOf = (p: Task) => (lists[p.list]?.kind === 'area' ? p.list : '');
@@ -33,6 +39,7 @@ export function organize(state: State) {
     projects,
     lists,
     todos,
+    sectionsOf,
     listOf,
     areaOf,
     progress,
@@ -76,10 +83,29 @@ export function visibleTasks(
     );
 }
 
-// The Logbook groups to-dos by the day they were completed; other views show
-// a single group.
-export function groupTasks(tasks: Task[], view: View) {
-  const groups: { key: string; tasks: Task[] }[] = [];
+export type Group = { key: string; section?: Task; tasks: Task[] };
+
+// The Logbook groups to-dos by the day they were completed. A project with
+// `sections` groups by section, after any to-dos in none, keeping empty
+// sections. Other views show a single group.
+export function groupTasks(
+  tasks: Task[],
+  view: View,
+  sections: Task[] = [],
+): Group[] {
+  if (sections.length) {
+    const ids = new Set(sections.map((s) => s.id));
+    const loose = tasks.filter((t) => !ids.has(t.section));
+    return [
+      ...(loose.length ? [{ key: 'none', tasks: loose }] : []),
+      ...sections.map((section) => ({
+        key: section.id,
+        section,
+        tasks: tasks.filter((t) => t.section === section.id),
+      })),
+    ];
+  }
+  const groups: Group[] = [];
   for (const task of tasks) {
     const key =
       view === 'logbook' ? new Date(completedTime(task)).toDateString() : view;

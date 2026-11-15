@@ -90,3 +90,188 @@
   background: var(--accent);
   color: #fff;
 }
+.context-menu button.menu-danger:not(:hover, :focus-visible) {
+  color: var(--danger);
+}
+.menu-heading {
+  padding: 3px 10px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.menu-rule {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--rule);
+}
+/* Commands chosen from a set leave room for the checkmark. */
+.has-checks button,
+.has-checks .menu-heading {
+  position: relative;
+  padding-left: 24px;
+}
+.context-menu button[aria-checked='true']::before {
+  content: '✓';
+  position: absolute;
+  left: 8px;
+}
+.emoji-picker,
+.move-popover {
+  position: fixed;
+}
+.emoji-picker {
+  width: 288px;
+  padding: 10px;
+}
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 2px;
+}
+.emoji-grid button {
+  height: 32px;
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 32px;
+}
+.emoji-grid button:hover,
+.emoji-grid button[aria-pressed='true'] {
+  background: var(--sel);
+}
+.emoji-custom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+.emoji-custom input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+}
+.emoji-custom input::placeholder {
+  color: currentColor;
+  opacity: 0.55;
+}
+.emoji-custom button {
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.emoji-custom .emoji-use {
+  padding: 0 10px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.move-popover {
+  width: 260px;
+  padding: 0;
+  overflow: hidden;
+}
+.move-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--rule);
+  color: var(--muted);
+}
+.move-search svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.move-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--fg);
+  font-size: 14px;
+  line-height: 20px;
+}
+.move-search input::placeholder {
+  color: currentColor;
+  opacity: 0.55;
+}
+.move-rows {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 6px;
+}
+.move-rows button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border-radius: 7px;
+  text-align: left;
+}
+.move-rows button:hover {
+  background: var(--sel);
+}
+.move-back {
+  gap: 6px;
+  height: 30px;
+  margin-bottom: 2px;
+  padding: 0 8px 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+}
+.move-row {
+  gap: 10px;
+  min-height: 36px;
+  padding: 6px 8px;
+  font-size: 14px;
+  line-height: 20px;
+}
+.move-row.is-current {
+  color: var(--heading);
+}
+.move-row .view-icon {
+  width: 18px;
+  height: 18px;
+}
+.move-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.move-label > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.move-sub {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+}
+.move-rows .chevron {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+}
+.move-empty {
+  margin: 0;
+  padding: 10px 8px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--muted);
+}

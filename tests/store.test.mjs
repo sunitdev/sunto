@@ -127,9 +127,13 @@ test('deleting a project trashes its to-dos, and Put Back returns them to the In
     trashed: true,
     trashedAt: 5,
   });
+  const section = await store.addList('section', project);
+  await store.update(open, { section });
   await store.deleteProject(project);
   let { tasks } = store.getSnapshot().state;
   assert.equal(tasks[project].deleted, true);
+  assert.equal(tasks[section].deleted, true);
+  assert.equal(tasks[open].section, '');
   assert.equal(tasks[open].trashed, true);
   assert.equal(tasks[open].list, '');
   assert.equal(tasks[open].deletedFrom, 'Trip');
@@ -140,4 +144,38 @@ test('deleting a project trashes its to-dos, and Put Back returns them to the In
   ({ tasks } = store.getSnapshot().state);
   assert.equal(tasks[open].trashed, false);
   assert.equal(tasks[open].deletedFrom, '');
+});
+test('deleting a section keeps its to-dos in the project, and moving a to-do leaves its section', async () => {
+  let saved;
+  globalThis.suntoTestRequest = async (command, data) => {
+    if (command === 'save') saved = data;
+    return command === 'load' ? { data: saved } : {};
+  };
+  const driverURL = compile(
+    'export const native = false; export const request = (command, data) => globalThis.suntoTestRequest(command, data);',
+  );
+  const source = readFileSync(
+    new URL('../packages/app/src/storage/store.ts', import.meta.url),
+    'utf8',
+  )
+    .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
+    .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL));
+  const store = await import(compile(source + '\n// section test instance'));
+  await store.start();
+  const project = await store.addList('project');
+  const section = await store.addList('section', project);
+  const kept = await store.add(project, section);
+  const moved = await store.add(project, section);
+  let { tasks } = store.getSnapshot().state;
+  assert.equal(tasks[section].kind, 'section');
+  assert.equal(tasks[section].list, project);
+  assert.equal(tasks[kept].section, section);
+  await store.move(moved, '');
+  await store.deleteSection(section);
+  ({ tasks } = store.getSnapshot().state);
+  assert.equal(tasks[section].deleted, true);
+  assert.equal(tasks[kept].list, project);
+  assert.equal(tasks[kept].section, '');
+  assert.equal(tasks[moved].list, '');
+  assert.equal(tasks[moved].section, '');
 });

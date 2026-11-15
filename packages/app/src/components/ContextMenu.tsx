@@ -1,7 +1,12 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useDismiss } from '../hooks/useDismiss';
 
-export type MenuItem = { label: string; action: () => void };
+// A command, optionally checked as one of a set of choices or styled as
+// destructive; a heading over the commands that follow; or a divider.
+export type MenuItem =
+  | { label: string; action: () => void; checked?: boolean; danger?: boolean }
+  | { heading: string }
+  | 'divider';
 export function ContextMenu({
   x,
   y,
@@ -44,20 +49,35 @@ export function ContextMenu({
       window.removeEventListener('resize', close);
     };
   }, [close]);
+  const checks = items.some((i) => typeof i === 'object' && 'checked' in i);
   return (
-    <div ref={menu} className="context-menu" role="menu">
-      {items.map((item) => (
-        <button
-          key={item.label}
-          role="menuitem"
-          onClick={() => {
-            close();
-            item.action();
-          }}
-        >
-          {item.label}
-        </button>
-      ))}
+    <div
+      ref={menu}
+      className={`context-menu${checks ? ' has-checks' : ''}`}
+      role="menu"
+    >
+      {items.map((item, i) =>
+        item === 'divider' ? (
+          <div key={i} className="menu-rule" role="separator" />
+        ) : 'heading' in item ? (
+          <div key={i} className="menu-heading" role="presentation">
+            {item.heading}
+          </div>
+        ) : (
+          <button
+            key={i}
+            className={item.danger ? 'menu-danger' : undefined}
+            role={item.checked === undefined ? 'menuitem' : 'menuitemradio'}
+            aria-checked={item.checked}
+            onClick={() => {
+              close();
+              item.action();
+            }}
+          >
+            {item.label}
+          </button>
+        ),
+      )}
     </div>
   );
 }

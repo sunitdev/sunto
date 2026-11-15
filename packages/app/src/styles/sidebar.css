@@ -88,6 +88,9 @@
 .sidebar-item[aria-current='page'] {
   background: var(--sel);
 }
+.sidebar-item.is-drop {
+  background: var(--drop-hot);
+}
 .sidebar-title {
   flex: 1;
   min-width: 0;

@@ -20,6 +20,8 @@ const record = (id, fields = {}) => ({
   id,
   kind: 'task',
   list: '',
+  section: '',
+  kanban: false,
   icon: '',
   deletedFrom: '',
   title: id,
@@ -147,4 +149,47 @@ test('the Logbook groups by completion day; other views have one group', () => {
     ['inbox'],
   );
   assert.deepEqual(groupTasks([], 'inbox'), []);
+});
+test('sections belong to their project in the order they were added', () => {
+  const lib = library(
+    record('p', { kind: 'project' }),
+    record('later', { kind: 'section', list: 'p', created: 2 }),
+    record('first', { kind: 'section', list: 'p', created: 1 }),
+    record('other', { kind: 'section', list: 'q' }),
+    record('gone', { kind: 'section', list: 'p', deleted: true }),
+    record('t', { list: 'p' }),
+  );
+  assert.deepEqual(
+    lib.sectionsOf('p').map((s) => s.id),
+    ['first', 'later'],
+  );
+  assert.deepEqual(Object.keys(lib.lists), ['p']);
+  assert.deepEqual(
+    lib.todos.map((t) => t.id),
+    ['t'],
+  );
+});
+test('a project groups by section after to-dos in none, keeping empty sections', () => {
+  const sections = [
+    record('s1', { kind: 'section', list: 'p' }),
+    record('s2', { kind: 'section', list: 'p' }),
+  ];
+  const tasks = [
+    record('a', { list: 'p', section: 's2' }),
+    record('b', { list: 'p' }),
+    record('c', { list: 'p', section: 'stale' }),
+  ];
+  const groups = groupTasks(tasks, 'p', sections);
+  assert.deepEqual(
+    groups.map((g) => [g.key, g.section?.id, g.tasks.map((t) => t.id)]),
+    [
+      ['none', undefined, ['b', 'c']],
+      ['s1', 's1', []],
+      ['s2', 's2', ['a']],
+    ],
+  );
+  assert.deepEqual(
+    groupTasks([tasks[0]], 'p', sections).map((g) => g.key),
+    ['s1', 's2'],
+  );
 });

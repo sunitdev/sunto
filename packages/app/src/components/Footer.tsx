@@ -2,8 +2,9 @@ import type { RefObject } from 'react';
 import * as store from '../storage/store';
 import { Plus, ToolbarIcon } from './icons';
 
-// The add button, or while editing on desktop, a button that closes the
-// editor and moves the to-do to the Trash (or back out of it).
+// The add button, and in a project, a button adding a section. While editing
+// on desktop, buttons that move the to-do to another list, and that close the
+// editor and move the to-do to the Trash (or back out of it).
 export function Footer({
   footerRef,
   addButtonRef,
@@ -12,6 +13,8 @@ export function Footer({
   inTrash,
   ready,
   add,
+  addSection,
+  move,
   closeEditor,
 }: {
   footerRef: RefObject<HTMLElement | null>;
@@ -21,21 +24,46 @@ export function Footer({
   inTrash: boolean;
   ready: boolean;
   add: () => void;
+  addSection?: () => void;
+  move: (anchor: DOMRect) => void;
   closeEditor: (then: (id: string) => void) => void;
 }) {
   return (
     <footer className="inbox-footer" ref={footerRef}>
       {!editing ? (
-        <button
-          ref={addButtonRef}
-          className="add-button"
-          disabled={!ready}
-          aria-label="New to-do"
-          title="New To-Do"
-          onClick={add}
-        >
-          <Plus />
-        </button>
+        <>
+          <button
+            ref={addButtonRef}
+            className="add-button"
+            disabled={!ready}
+            aria-label="New to-do"
+            title="New To-Do"
+            onClick={add}
+          >
+            <Plus />
+          </button>
+          {addSection && (
+            <button
+              className="footer-button"
+              aria-label="New section"
+              title="New Section"
+              onClick={addSection}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3.5" y="3.5" width="17" height="17" rx="4.5" />
+                <path d="M12 8.2v7.6M8.2 12h7.6" />
+              </svg>
+            </button>
+          )}
+        </>
       ) : phone ? null : inTrash ? (
         <button
           className="footer-button"
@@ -46,14 +74,25 @@ export function Footer({
           <ToolbarIcon d="M4.5 12h15M13.5 6l6 6-6 6" />
         </button>
       ) : (
-        <button
-          className="footer-button"
-          aria-label="Move to Trash"
-          title="Move to Trash"
-          onClick={() => closeEditor((id) => void store.setTrashed(id, true))}
-        >
-          <ToolbarIcon d="M4.5 7h15M9.5 7V4.8h5V7M6.8 7l.8 12.2a1.6 1.6 0 0 0 1.6 1.5h5.6a1.6 1.6 0 0 0 1.6-1.5L17.2 7" />
-        </button>
+        <>
+          <button
+            className="footer-button"
+            aria-label="Move to another list"
+            title="Move"
+            aria-haspopup="dialog"
+            onClick={(e) => move(e.currentTarget.getBoundingClientRect())}
+          >
+            <ToolbarIcon d="M4.5 12h15M13.5 6l6 6-6 6" />
+          </button>
+          <button
+            className="footer-button"
+            aria-label="Move to Trash"
+            title="Move to Trash"
+            onClick={() => closeEditor((id) => void store.setTrashed(id, true))}
+          >
+            <ToolbarIcon d="M4.5 7h15M9.5 7V4.8h5V7M6.8 7l.8 12.2a1.6 1.6 0 0 0 1.6 1.5h5.6a1.6 1.6 0 0 0 1.6-1.5L17.2 7" />
+          </button>
+        </>
       )}
     </footer>
   );

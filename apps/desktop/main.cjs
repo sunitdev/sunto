@@ -27,9 +27,6 @@ ipcMain.handle('sunto:storage', (event, options) => {
   );
   return job;
 });
-ipcMain.on('sunto:emoji-panel', (event) => {
-  if (event.senderFrame === event.sender.mainFrame) app.showEmojiPanel();
-});
 // Matches the renderer's --bg token so resizing never flashes the wrong color.
 const windowBackground = () =>
   nativeTheme.shouldUseDarkColors ? '#2e2e2e' : '#ffffff';

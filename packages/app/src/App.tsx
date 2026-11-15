@@ -21,11 +21,13 @@ import {
   type View,
 } from './views';
 import { AreaProjects } from './components/AreaProjects';
+import { Board } from './components/Board';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { ContextMenu } from './components/ContextMenu';
 import { Footer } from './components/Footer';
 import { InboxIcon, ViewIcon } from './components/icons';
 import { ListHeader } from './components/ListHeader';
+import { MovePopover } from './components/MovePopover';
 import { Sidebar } from './components/Sidebar';
 import { StoragePanel } from './components/StoragePanel';
 import { TaskList } from './components/TaskList';
@@ -46,13 +48,18 @@ export function App() {
   );
   const [settings, setSettings] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  // The edited to-do's list picker, and the bounds of the button opening it.
+  const [moving, setMoving] = useState<DOMRect | null>(null);
   const closeMenu = useCallback(() => setMenu(null), []);
+  const closeMove = useCallback(() => setMoving(null), []);
+  // The picker closes with the editor, so it can't reopen with the next one.
+  const [movingFor, setMovingFor] = useState(editing);
+  if (movingFor !== editing) {
+    setMovingFor(editing);
+    setMoving(null);
+  }
   const library = organize(state);
-  const { projects, lists, todos, areaOf, progress } = library;
-  const listName = (t: Task) => {
-    const list = lists[t.list];
-    return list ? list.title || untitled(list) : t.deletedFrom;
-  };
+  const { projects, lists, todos, sectionsOf, areaOf, progress } = library;
   // The phone layout has no navigation, so it always shows the Inbox.
   const view: View =
     phone || !(isStatic(selectedView) || lists[selectedView])
@@ -65,16 +72,23 @@ export function App() {
     lingering,
     phone,
   });
-  const groups = groupTasks(tasks, view).map((group) => ({
+  const project = openList?.kind === 'project' ? openList : undefined;
+  const groups = groupTasks(
+    tasks,
+    view,
+    project ? sectionsOf(project.id) : [],
+  ).map((group) => ({
     ...group,
     label:
       view === 'logbook' ? dayName(completedTime(group.tasks[0]), false) : '',
   }));
+  // The to-dos in display order, which sections change.
+  const shown = groups.flatMap((g) => g.tasks);
   useSync();
   // Selects the neighbouring to-do so repeated deletes keep working.
   function leave(task: Task) {
-    const i = tasks.findIndex((t) => t.id === task.id);
-    setSelected((tasks[i + 1] ?? tasks[i - 1])?.id ?? null);
+    const i = shown.findIndex((t) => t.id === task.id);
+    setSelected((shown[i + 1] ?? shown[i - 1])?.id ?? null);
   }
   // In Trash, deleting is permanent; elsewhere it moves the to-do to Trash.
   function remove(task: Task) {
@@ -88,7 +102,7 @@ export function App() {
     void store.setTrashed(task.id, false);
   }
   useTaskKeyboard({
-    tasks,
+    tasks: shown,
     selected,
     select: setSelected,
     paused: !!editing || !!menu,
@@ -122,11 +136,20 @@ export function App() {
     setSelected(null);
     setSelectedView(next);
   }
-  async function addTask() {
+  async function addTask(section = '') {
     // New to-dos join the open project or area; elsewhere they go to the Inbox.
+    if (editing) closeEditor();
     if (!openList) setSelectedView('inbox');
-    const id = await store.add(openList?.id);
+    const id = await store.add(openList?.id, section);
     if (store.getSnapshot().state.tasks[id]) setEditing(id);
+  }
+  function addSection() {
+    if (editing) closeEditor();
+    if (project) void store.addList('section', project.id);
+  }
+  function moveTo(list: string) {
+    setMoving(null);
+    closeEditor((id) => void store.move(id, list));
   }
   async function addList(kind: 'project' | 'area') {
     if (editing) closeEditor();
@@ -141,6 +164,7 @@ export function App() {
     void store.deleteProject(id);
   }
   const menuTask = menu && tasks.find((t) => t.id === menu.id);
+  const movingTask = editing ? state.tasks[editing] : undefined;
   const menuProject =
     menu && lists[menu.id]?.kind === 'project' && lists[menu.id];
   const deleting = confirmDelete ? lists[confirmDelete] : undefined;
@@ -153,6 +177,24 @@ export function App() {
     openList?.kind === 'area'
       ? projects.filter((p) => areaOf(p) === openList.id)
       : [];
+  const itemProps = {
+    view,
+    phone,
+    editing,
+    selected,
+    editorRef: editorArea,
+    library,
+    closeEditor,
+    onToggle: toggle,
+    onEdit: openEditor,
+    onSelect: setSelected,
+    onMenu: (task: Task, x: number, y: number) => {
+      if (editing) closeEditor();
+      setSelected(task.id);
+      setMenu({ id: task.id, x, y });
+    },
+    onMove: (_task: Task, anchor: DOMRect) => setMoving(anchor),
+  };
   const settingsToggle = (
     <button
       className="settings-toggle"
@@ -171,12 +213,16 @@ export function App() {
         openMenu={setMenu}
         addList={(kind) => void addList(kind)}
       />
-      <main className={`inbox-main view-${openList ? 'list' : view}`}>
+      <main
+        className={`inbox-main view-${openList ? 'list' : view}${project?.kanban ? ' view-board' : ''}`}
+      >
         {openList ? (
           <ListHeader
             key={openList.id}
             list={openList}
             progress={progress(openList.id)}
+            addSection={addSection}
+            deleteProject={() => setConfirmDelete(openList.id)}
           >
             {settingsToggle}
           </ListHeader>
@@ -221,25 +267,22 @@ export function App() {
               Empty Trash
             </button>
           )}
-          <TaskList
-            groups={groups}
-            label={`${openList ? openList.title || untitled(openList) : titles[view as StaticView]} tasks`}
-            view={view}
-            phone={phone}
-            editing={editing}
-            selected={selected}
-            editorRef={editorArea}
-            listName={listName}
-            closeEditor={closeEditor}
-            onToggle={toggle}
-            onEdit={openEditor}
-            onSelect={setSelected}
-            onMenu={(task, x, y) => {
-              if (editing) closeEditor();
-              setSelected(task.id);
-              setMenu({ id: task.id, x, y });
-            }}
-          />
+          {project?.kanban ? (
+            <Board
+              project={project.id}
+              groups={groups}
+              addTask={(section) => void addTask(section)}
+              addSection={addSection}
+              {...itemProps}
+            />
+          ) : (
+            <TaskList
+              groups={groups}
+              label={`${openList ? openList.title || untitled(openList) : titles[view as StaticView]} tasks`}
+              addTask={project && ((section) => void addTask(section))}
+              {...itemProps}
+            />
+          )}
           {tasks.length === 0 && !openList && (
             <div className="empty-state">
               <InboxIcon empty />
@@ -258,9 +301,20 @@ export function App() {
           inTrash={view === 'trash'}
           ready={ready}
           add={() => void addTask()}
+          addSection={project && addSection}
+          move={setMoving}
           closeEditor={closeEditor}
         />
       </main>
+      {moving && movingTask && (
+        <MovePopover
+          task={movingTask}
+          library={library}
+          anchor={moving}
+          move={moveTo}
+          close={closeMove}
+        />
+      )}
       {menuTask && (
         <ContextMenu
           x={menu.x}

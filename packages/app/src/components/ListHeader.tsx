@@ -1,96 +1,72 @@
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import * as store from '../storage/store';
 import type { Task } from '../storage/model';
-import { canShowEmojiPanel, showEmojiPanel } from '../platform';
 import { useDraft } from '../hooks/useDraft';
 import { untitled } from '../views';
 import { ContextMenu } from './ContextMenu';
-import { ListIcon } from './icons';
+import { EmojiPicker } from './EmojiPicker';
+import { ListIcon, MoreIcon } from './icons';
 
-// The last emoji in `value`, including flags, keycaps and skin tones.
-function lastEmoji(value: string) {
-  const segments = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
-  return [...segments.segment(value)]
-    .map((s) => s.segment)
-    .filter((g) =>
-      /\p{Extended_Pictographic}|\p{Regional_Indicator}|\u20e3/u.test(g),
-    )
-    .at(-1);
-}
+// A project or area's icon, name and notes. A project also has actions:
+// showing it as a list or a board, adding a section, and deleting it.
 export function ListHeader({
   list,
   progress,
+  addSection,
+  deleteProject,
   children,
 }: {
   list: Task;
   progress: number;
+  addSection: () => void;
+  deleteProject: () => void;
   children: ReactNode;
 }) {
   const { draft, change } = useDraft(list);
-  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const [picker, setPicker] = useState<DOMRect | null>(null);
+  const [menu, setMenu] = useState<DOMRect | null>(null);
+  const closePicker = useCallback(() => setPicker(null), []);
   const closeMenu = useCallback(() => setMenu(null), []);
-  const button = useRef<HTMLButtonElement>(null);
-  const emojiField = useRef<HTMLInputElement>(null);
   function setIcon(icon: string) {
     if (icon !== list.icon) void store.update(list.id, { icon });
+  }
+  function setKanban(kanban: boolean) {
+    if (kanban !== list.kanban) void store.update(list.id, { kanban });
   }
   return (
     <>
       <header className="inbox-header list-header">
-        <div className="icon-anchor">
-          <button
-            ref={button}
-            className="icon-button"
-            aria-label="Change icon"
-            title={
-              canShowEmojiPanel
-                ? 'Change icon'
-                : 'Change icon (press Control-Command-Space)'
-            }
-            onClick={() => {
-              emojiField.current?.focus();
-              showEmojiPanel();
-            }}
-            onContextMenu={(e) => {
-              if (!list.icon) return;
-              e.preventDefault();
-              setMenu({ x: e.clientX, y: e.clientY });
-            }}
-          >
-            <ListIcon list={list} progress={progress} />
-          </button>
-          {/* The system emoji picker types into this field, which sits over
-              the icon so the picker opens beside it. Moving focus away as
-              the emoji arrived left the picker open, so the field keeps
-              focus and its text until it is focused again. */}
-          <input
-            ref={emojiField}
-            className="emoji-field"
-            tabIndex={-1}
-            aria-label="Icon emoji"
-            onFocus={(e) => (e.currentTarget.value = '')}
-            onChange={(e) => {
-              const emoji = lastEmoji(e.target.value);
-              if (emoji) setIcon(emoji);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Backspace' || e.key === 'Delete') {
-                e.preventDefault();
-                setIcon('');
-              } else if (e.key === 'Escape' || e.key === 'Enter')
-                button.current?.focus();
-            }}
-          />
-        </div>
+        <button
+          className="icon-button"
+          aria-label="Change icon"
+          title="Change icon"
+          aria-haspopup="dialog"
+          onClick={(e) => setPicker(e.currentTarget.getBoundingClientRect())}
+        >
+          <ListIcon list={list} progress={progress} />
+        </button>
         <input
           className="list-title"
           // A new list starts untitled, ready to be named.
           autoFocus={!list.title}
           aria-label={list.kind === 'area' ? 'Area name' : 'Project name'}
           placeholder={untitled(list)}
+          size={Math.max((draft.title || untitled(list)).length + 1, 4)}
           value={draft.title}
           onChange={(e) => change('title', e.target.value)}
         />
+        {list.kind === 'project' && (
+          <button
+            className="list-actions"
+            aria-label="Project actions"
+            title="Project actions"
+            aria-haspopup="true"
+            aria-expanded={!!menu}
+            onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}
+          >
+            <MoreIcon />
+          </button>
+        )}
         {children}
       </header>
       <textarea
@@ -101,12 +77,36 @@ export function ListHeader({
         value={draft.notes}
         onChange={(e) => change('notes', e.target.value)}
       />
+      {picker && (
+        <EmojiPicker
+          anchor={picker}
+          current={list.icon}
+          choose={setIcon}
+          close={closePicker}
+        />
+      )}
       {menu && (
         <ContextMenu
-          x={menu.x}
-          y={menu.y}
+          x={menu.left}
+          y={menu.bottom + 4}
           close={closeMenu}
-          items={[{ label: 'Remove Icon', action: () => setIcon('') }]}
+          items={[
+            { heading: 'View as' },
+            {
+              label: 'List',
+              checked: !list.kanban,
+              action: () => setKanban(false),
+            },
+            {
+              label: 'Kanban',
+              checked: list.kanban,
+              action: () => setKanban(true),
+            },
+            'divider',
+            { label: 'Add Section', action: addSection },
+            'divider',
+            { label: 'Delete Project…', danger: true, action: deleteProject },
+          ]}
         />
       )}
     </>
