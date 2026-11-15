@@ -47,9 +47,26 @@ Save failures show an error and retain changes in memory for Retry; do not quit 
 
 For recovery after reinstall, choose the original sync folder: retained change records rebuild the tasks. Changes that never reached that folder cannot be recovered after deleting the local app. Do not remove change files manually; they are the recovery journal.
 
+## Code quality and Git hooks
+
+`pnpm install` installs the Husky Git hooks through the `prepare` script. If hooks need to be reinstalled, run `pnpm prepare` from the repository root.
+
+Before each commit, lint-staged runs ESLint with automatic fixes on staged JavaScript and TypeScript files, then formats them with Prettier. Other supported staged files (including CSS, HTML, JSON, YAML, and Markdown) are formatted with Prettier. Fixes are added to the commit automatically; lint-staged preserves unstaged changes in partially staged files.
+
+Staged Swift files are formatted and strictly linted with Xcode's bundled `swift-format`, using `.swift-format.json`. Apple property lists, privacy manifests, entitlements, and Xcode project files are validated with `plutil`; storyboards, XIBs, schemes, workspace XML, and other XML files are validated with `xmllint`. These native tools run only when matching source files are present. Native checks require Xcode command-line tools; they do not build the app.
+
+The hook then runs the full workspace TypeScript check and `git diff --cached --check` to reject whitespace errors and merge conflict markers. ESLint warnings also block commits. Fix any reported issues, stage the changes, and retry the commit.
+
+Generated output, Capacitor's generated web assets/configuration and `CapApp-SPM` package, and the pnpm lockfile are excluded from formatting. Maintained native source and metadata are checked. Generated output and native iOS files are excluded from ESLint. React source uses the recommended Hooks and Vite Fast Refresh rules. EditorConfig keeps editor whitespace settings aligned with Prettier.
+
+`pnpm format` and `pnpm format:check` include native checks. The standalone `pnpm native:format` and `pnpm native:check` commands inspect tracked and untracked source files, respecting Git ignores. To check particular files, pass their paths after either command.
+
+Run `pnpm lint:fix` to apply ESLint fixes, `pnpm format` to format source and documentation, or `pnpm format:check` to check formatting without changes.
+
 ## Validation
 
 ```sh
+pnpm format:check
 pnpm typecheck
 pnpm lint
 pnpm test:storage

@@ -31,7 +31,7 @@ export const emptyState = (): State => ({
   tasks: {},
   changes: {},
 });
-const keys = ["title", "notes", "completed", "deleted", "created"];
+const keys = ['title', 'notes', 'completed', 'deleted', 'created'];
 export function validateChange(value: unknown): Change {
   const c = value as Change;
   if (
@@ -39,25 +39,25 @@ export function validateChange(value: unknown): Change {
     c.version !== 1 ||
     ![c.id, c.device, c.task].every(
       (v) =>
-        typeof v === "string" &&
+        typeof v === 'string' &&
         /^[a-zA-Z0-9-]{1,100}$/.test(v) &&
-        !["__proto__", "constructor", "prototype"].includes(v),
+        !['__proto__', 'constructor', 'prototype'].includes(v),
     ) ||
     !Number.isSafeInteger(c.revision) ||
     c.revision < 1 ||
     !c.patch ||
-    typeof c.patch !== "object"
+    typeof c.patch !== 'object'
   )
-    throw Error("Unsupported or malformed sync change");
+    throw Error('Unsupported or malformed sync change');
   for (const [key, v] of Object.entries(c.patch)) {
     if (
       !keys.includes(key) ||
-      (key === "created"
-        ? typeof v !== "number" || !Number.isFinite(v)
+      (key === 'created'
+        ? typeof v !== 'number' || !Number.isFinite(v)
         : typeof v !==
-          (key === "title" || key === "notes" ? "string" : "boolean"))
+          (key === 'title' || key === 'notes' ? 'string' : 'boolean'))
     )
-      throw Error("Invalid task field");
+      throw Error('Invalid task field');
   }
   return {
     version: 1,
@@ -76,14 +76,14 @@ export function merge(state: State, input: unknown): State {
   const c = validateChange(input);
   if (state.changes[c.id]) {
     if (JSON.stringify(state.changes[c.id]) !== JSON.stringify(c))
-      throw Error("Conflicting change identifier");
+      throw Error('Conflicting change identifier');
     return state;
   }
   const task: Task = structuredClone(
     state.tasks[c.task] ?? {
       id: c.task,
-      title: "",
-      notes: "",
+      title: '',
+      notes: '',
       completed: false,
       deleted: false,
       created: 0,
@@ -124,8 +124,8 @@ export function mutate(
 }
 export function restore(text: string): State {
   const saved = JSON.parse(text) as State;
-  if (saved.version !== 1 || typeof saved.device !== "string" || !saved.changes)
-    throw Error("Unsupported database format");
+  if (saved.version !== 1 || typeof saved.device !== 'string' || !saved.changes)
+    throw Error('Unsupported database format');
   let result = { ...emptyState(), device: saved.device };
   for (const c of Object.values(saved.changes)) result = merge(result, c);
   return result;

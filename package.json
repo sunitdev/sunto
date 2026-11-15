@@ -14,17 +14,37 @@
     "ios:sync": "pnpm build:web && node scripts/sync-ios.mjs",
     "ios:open": "pnpm --filter @sunto/mobile open",
     "typecheck": "tsc --noEmit && pnpm --filter @sunto/app typecheck",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "pnpm lint --fix",
+    "format": "prettier --write . && pnpm native:format",
+    "format:check": "prettier --check . && pnpm native:check",
+    "native:format": "node scripts/check-native.mjs --write",
+    "native:check": "node scripts/check-native.mjs --check",
+    "prepare": "husky",
     "check:desktop": "pnpm build:web && pnpm --filter @sunto/desktop smoke",
     "ios:build": "pnpm ios:sync && xcodebuild -project apps/mobile/ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath apps/mobile/DerivedData CODE_SIGNING_ALLOWED=NO build",
     "test:storage": "node scripts/test-storage.mjs"
   },
+  "lint-staged": {
+    "*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}": [
+      "eslint --fix --max-warnings=0 --no-warn-ignored",
+      "prettier --write"
+    ],
+    "*.{swift,plist,pbxproj,entitlements,xcprivacy,storyboard,xib,xcworkspacedata,xcscheme,xml}": "node scripts/check-native.mjs --write",
+    "!(*.{js,jsx,mjs,cjs,ts,tsx,mts,cts,swift,plist,pbxproj,entitlements,xcprivacy,storyboard,xib,xcworkspacedata,xcscheme,xml})": "prettier --write --ignore-unknown"
+  },
   "devDependencies": {
-    "typescript": "^6.0.0",
-    "eslint": "^9.0.0",
     "@eslint/js": "^9.0.0",
-    "typescript-eslint": "latest",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.7",
     "globals": "latest",
-    "@types/node": "^22.0.0"
+    "husky": "9.1.7",
+    "lint-staged": "16.4.0",
+    "prettier": "3.10.1",
+    "typescript": "^6.0.0",
+    "typescript-eslint": "latest"
   }
 }

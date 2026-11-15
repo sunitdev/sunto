@@ -1,20 +1,21 @@
 import {
   StrictMode,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
-} from "react";
-import { createRoot } from "react-dom/client";
-import * as store from "./storage/store";
-import { native } from "./storage/driver";
-import type { Task } from "./storage/model";
-import "./styles.css";
+} from 'react';
+import { createRoot } from 'react-dom/client';
+import * as store from './storage/store';
+import { native } from './storage/driver';
+import type { Task } from './storage/model';
+import './styles.css';
 
 function InboxIcon({ empty = false }: { empty?: boolean }) {
   return (
     <svg
-      className={`inbox-icon${empty ? " empty-icon" : ""}`}
+      className={`inbox-icon${empty ? ' empty-icon' : ''}`}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -27,7 +28,7 @@ function InboxIcon({ empty = false }: { empty?: boolean }) {
         <path d="M3 13l2.6-7.2A2 2 0 0 1 7.5 4.5h9a2 2 0 0 1 1.9 1.3L21 13" />
         <path
           d="M3 13h5.2a1 1 0 0 1 1 .8 3 3 0 0 0 5.6 0 1 1 0 0 1 1-.8H21v4.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
-          fill={empty ? "none" : "currentColor"}
+          fill={empty ? 'none' : 'currentColor'}
         />
       </g>
       <g className="desktop-glyph">
@@ -67,7 +68,7 @@ function Check({ task }: { task: Task }) {
     <button
       className="task-check"
       type="button"
-      aria-label={`${task.completed ? "Mark as not completed" : "Mark as completed"}: ${task.title || "New to-do"}`}
+      aria-label={`${task.completed ? 'Mark as not completed' : 'Mark as completed'}: ${task.title || 'New to-do'}`}
       aria-pressed={task.completed}
       onClick={() => void store.update(task.id, { completed: !task.completed })}
     >
@@ -95,31 +96,33 @@ function Editor({ task, close }: { task: Task; close: () => void }) {
   const saved = useRef({ title: task.title, notes: task.notes });
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const flush = useRef(() => {});
-  flush.current = () => {
-    clearTimeout(timer.current);
-    const patch: { title?: string; notes?: string } = {};
-    if (draft.current.title !== saved.current.title)
-      patch.title = draft.current.title;
-    if (draft.current.notes !== saved.current.notes)
-      patch.notes = draft.current.notes;
-    if (Object.keys(patch).length) {
-      saved.current = { ...draft.current };
-      void store.update(task.id, patch);
-    }
-  };
+  useLayoutEffect(() => {
+    flush.current = () => {
+      clearTimeout(timer.current);
+      const patch: { title?: string; notes?: string } = {};
+      if (draft.current.title !== saved.current.title)
+        patch.title = draft.current.title;
+      if (draft.current.notes !== saved.current.notes)
+        patch.notes = draft.current.notes;
+      if (Object.keys(patch).length) {
+        saved.current = { ...draft.current };
+        void store.update(task.id, patch);
+      }
+    };
+  }, [task.id]);
   useEffect(() => {
     const save = () => flush.current();
-    window.addEventListener("pagehide", save);
-    document.addEventListener("visibilitychange", save);
+    window.addEventListener('pagehide', save);
+    document.addEventListener('visibilitychange', save);
     return () => {
       save();
-      window.removeEventListener("pagehide", save);
-      document.removeEventListener("visibilitychange", save);
+      window.removeEventListener('pagehide', save);
+      document.removeEventListener('visibilitychange', save);
     };
   }, []);
-  function change(key: "title" | "notes", value: string) {
+  function change(key: 'title' | 'notes', value: string) {
     draft.current[key] = value;
-    if (key === "title") setTitle(value);
+    if (key === 'title') setTitle(value);
     else setNotes(value);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => flush.current(), 250);
@@ -139,11 +142,11 @@ function Editor({ task, close }: { task: Task; close: () => void }) {
           aria-label="To-do title"
           placeholder="New To-Do"
           value={title}
-          onChange={(e) => change("title", e.target.value)}
+          onChange={(e) => change('title', e.target.value)}
           onKeyDown={(e) => {
             if (
               !e.nativeEvent.isComposing &&
-              (e.key === "Enter" || e.key === "Escape")
+              (e.key === 'Enter' || e.key === 'Escape')
             ) {
               e.preventDefault();
               done();
@@ -156,9 +159,9 @@ function Editor({ task, close }: { task: Task; close: () => void }) {
         placeholder="Notes"
         rows={3}
         value={notes}
-        onChange={(e) => change("notes", e.target.value)}
+        onChange={(e) => change('notes', e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Escape") done();
+          if (e.key === 'Escape') done();
         }}
       />
       <div className="editor-actions">
@@ -181,30 +184,32 @@ function App() {
     .filter((t) => !t.deleted)
     .sort((a, b) => b.created - a.created || a.id.localeCompare(b.id));
   const count = tasks.filter((t) => !t.completed && t.title.trim()).length;
-  closeEditor.current = () => {
-    // Unmount flushes the editor's draft before this cleanup is queued.
-    const id = editing;
-    setEditing(null);
-    setTimeout(() => {
-      if (id) {
-        const t = store.getSnapshot().state.tasks[id];
-        if (t && !t.title.trim()) void store.update(id, { deleted: true });
-      }
-      addButton.current?.focus();
-    }, 0);
-  };
+  useLayoutEffect(() => {
+    closeEditor.current = () => {
+      // Unmount flushes the editor's draft before this cleanup is queued.
+      const id = editing;
+      setEditing(null);
+      setTimeout(() => {
+        if (id) {
+          const t = store.getSnapshot().state.tasks[id];
+          if (t && !t.title.trim()) void store.update(id, { deleted: true });
+        }
+        addButton.current?.focus();
+      }, 0);
+    };
+  }, [editing]);
   useEffect(() => {
     void store.start().then(store.sync);
     const interval = setInterval(() => void store.sync(), 10000);
     const refresh = () => {
       if (!document.hidden) void store.sync();
     };
-    document.addEventListener("visibilitychange", refresh);
-    window.addEventListener("focus", refresh);
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('focus', refresh);
     return () => {
       clearInterval(interval);
-      document.removeEventListener("visibilitychange", refresh);
-      window.removeEventListener("focus", refresh);
+      document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('focus', refresh);
     };
   }, []);
   useEffect(() => {
@@ -217,15 +222,15 @@ function App() {
       )
         closeEditor.current();
     };
-    document.addEventListener("pointerdown", outside);
-    return () => document.removeEventListener("pointerdown", outside);
+    document.addEventListener('pointerdown', outside);
+    return () => document.removeEventListener('pointerdown', outside);
   }, [editing]);
   async function addTask() {
     const id = await store.add();
     if (store.getSnapshot().state.tasks[id]) setEditing(id);
   }
   return (
-    <div className={`inbox-app${editing ? " is-editing" : ""}`}>
+    <div className={`inbox-app${editing ? ' is-editing' : ''}`}>
       <aside className="sidebar" aria-label="Inbox navigation">
         <div className="sidebar-inbox" aria-current="page">
           <InboxIcon />
@@ -262,8 +267,8 @@ function App() {
             <strong>Storage & sync</strong>
             <p>
               {native
-                ? "Tasks are saved in SQLite on this device. Select the same iCloud Drive/Sunto folder on both devices."
-                : "Tasks are saved in this browser. Open the native app to use iCloud folder sync."}
+                ? 'Tasks are saved in SQLite on this device. Select the same iCloud Drive/Sunto folder on both devices.'
+                : 'Tasks are saved in this browser. Open the native app to use iCloud folder sync.'}
             </p>
             <p role="status">
               {syncStatus}
@@ -293,7 +298,7 @@ function App() {
               <li
                 key={task.id}
                 ref={editing === task.id ? editorArea : undefined}
-                className={`task-item${task.completed ? " task-row--completed" : ""}${editing === task.id ? " task-item--editing" : ""}`}
+                className={`task-item${task.completed ? ' task-row--completed' : ''}${editing === task.id ? ' task-item--editing' : ''}`}
               >
                 {editing === task.id ? (
                   <Editor task={task} close={() => closeEditor.current()} />
@@ -307,7 +312,7 @@ function App() {
                         setEditing(task.id);
                       }}
                     >
-                      {task.title || "New To-Do"}
+                      {task.title || 'New To-Do'}
                     </button>
                   </div>
                 )}
@@ -317,7 +322,7 @@ function App() {
           {tasks.length === 0 && (
             <div className="empty-state">
               <InboxIcon empty />
-              <span>{ready ? "Inbox is empty" : "Loading tasks…"}</span>
+              <span>{ready ? 'Inbox is empty' : 'Loading tasks…'}</span>
             </div>
           )}
         </div>
@@ -339,7 +344,7 @@ function App() {
     </div>
   );
 }
-createRoot(document.getElementById("root")!).render(
+createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
   </StrictMode>,

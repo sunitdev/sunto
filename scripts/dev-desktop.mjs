@@ -5,12 +5,28 @@ import { fileURLToPath } from 'node:url';
 import { setTimeout } from 'node:timers/promises';
 const appDir = fileURLToPath(new URL('../packages/app/', import.meta.url));
 const desktopDir = fileURLToPath(new URL('../apps/desktop/', import.meta.url));
-const appRequire = createRequire(new URL('../packages/app/package.json', import.meta.url));
-const desktopRequire = createRequire(new URL('../apps/desktop/package.json', import.meta.url));
-const build = spawnSync(process.execPath, [fileURLToPath(new URL('./build-storage.mjs', import.meta.url))], { stdio: 'inherit' });
+const appRequire = createRequire(
+  new URL('../packages/app/package.json', import.meta.url),
+);
+const desktopRequire = createRequire(
+  new URL('../apps/desktop/package.json', import.meta.url),
+);
+const build = spawnSync(
+  process.execPath,
+  [fileURLToPath(new URL('./build-storage.mjs', import.meta.url))],
+  { stdio: 'inherit' },
+);
 if (build.status !== 0) process.exit(build.status ?? 1);
 const electron = desktopRequire('electron');
-const vite = spawn(process.execPath, [join(dirname(appRequire.resolve('vite/package.json')), 'bin/vite.js'), '--host', '127.0.0.1'], { cwd: appDir, stdio: 'inherit' });
+const vite = spawn(
+  process.execPath,
+  [
+    join(dirname(appRequire.resolve('vite/package.json')), 'bin/vite.js'),
+    '--host',
+    '127.0.0.1',
+  ],
+  { cwd: appDir, stdio: 'inherit' },
+);
 /** @type {import('node:child_process').ChildProcess | undefined} */
 let desktop;
 let stopping = false;
@@ -23,17 +39,39 @@ function stop(code = 0) {
 }
 process.on('SIGINT', () => stop());
 process.on('SIGTERM', () => stop());
-vite.on('error', error => { console.error(error); stop(1); });
-vite.on('exit', code => { if (!stopping) stop(code || 1); });
+vite.on('error', (error) => {
+  console.error(error);
+  stop(1);
+});
+vite.on('exit', (code) => {
+  if (!stopping) stop(code || 1);
+});
 try {
   let ready = false;
   for (let attempt = 0; attempt < 100 && !stopping; attempt++) {
-    try { ready = (await fetch('http://127.0.0.1:5173', { signal: AbortSignal.timeout(500) })).ok; } catch { /* server starting */ }
+    try {
+      ready = (
+        await fetch('http://127.0.0.1:5173', {
+          signal: AbortSignal.timeout(500),
+        })
+      ).ok;
+    } catch {
+      /* server starting */
+    }
     if (ready) break;
     await setTimeout(200);
   }
   if (!ready || stopping) throw new Error('Vite did not start on port 5173');
-  desktop = spawn(electron, [desktopDir], { stdio: 'inherit', env: { ...process.env, SUNTO_DEV_URL: 'http://127.0.0.1:5173' } });
-  desktop.on('error', error => { console.error(error); stop(1); });
-  desktop.on('exit', code => stop(code ?? 1));
-} catch (error) { console.error(error); stop(1); }
+  desktop = spawn(electron, [desktopDir], {
+    stdio: 'inherit',
+    env: { ...process.env, SUNTO_DEV_URL: 'http://127.0.0.1:5173' },
+  });
+  desktop.on('error', (error) => {
+    console.error(error);
+    stop(1);
+  });
+  desktop.on('exit', (code) => stop(code ?? 1));
+} catch (error) {
+  console.error(error);
+  stop(1);
+}

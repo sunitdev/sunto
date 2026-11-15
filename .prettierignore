@@ -1,0 +1,10 @@
+node_modules/
+dist/
+release/
+DerivedData/
+apps/mobile/ios/App/App/public/
+apps/mobile/ios/App/App/capacitor.config.json
+apps/mobile/ios/App/App/config.xml
+apps/mobile/ios/App/CapApp-SPM/
+.husky/_/
+pnpm-lock.yaml

@@ -5,13 +5,13 @@ import {
   restore,
   type Fields,
   type State,
-} from "./model";
-import { native, request } from "./driver";
+} from './model';
+import { native, request } from './driver';
 let state = emptyState();
 let ready = false;
-let error = "";
-let syncStatus = native ? "Choose a sync folder" : "Stored in this browser";
-let folder = "";
+let error = '';
+let syncStatus = native ? 'Choose a sync folder' : 'Stored in this browser';
+let folder = '';
 let queue = Promise.resolve();
 const listeners = new Set<() => void>();
 let snapshot = { state, ready, error, syncStatus, folder };
@@ -30,17 +30,17 @@ function run(work: () => Promise<void>) {
 async function persist(next: State) {
   state = next;
   emit();
-  await request("save", JSON.stringify(next));
-  error = "";
+  await request('save', JSON.stringify(next));
+  error = '';
   emit();
 }
 let started: Promise<void> | undefined;
 export function start() {
   return (started ??= run(async () => {
-    const result = await request("load");
+    const result = await request('load');
     state = result.data ? restore(result.data) : emptyState();
     await persist(state);
-    folder = result.folder ?? "";
+    folder = result.folder ?? '';
     ready = true;
     emit();
   }));
@@ -54,10 +54,10 @@ export const subscribe = (listener: () => void) => {
 export const getSnapshot = () => snapshot;
 export function update(id: string, patch: Partial<Fields>) {
   return run(async () => {
-    if (!ready) throw Error("Storage is not ready");
+    if (!ready) throw Error('Storage is not ready');
     await persist(mutate(state, id, patch));
     if (folder) {
-      syncStatus = "Changes pending";
+      syncStatus = 'Changes pending';
       emit();
     }
   });
@@ -65,8 +65,8 @@ export function update(id: string, patch: Partial<Fields>) {
 export async function add() {
   const id = crypto.randomUUID();
   await update(id, {
-    title: "",
-    notes: "",
+    title: '',
+    notes: '',
     completed: false,
     deleted: false,
     created: Date.now(),
@@ -76,12 +76,12 @@ export async function add() {
 export function sync() {
   return run(async () => {
     if (!ready || !native || !folder) return;
-    syncStatus = "Syncing…";
+    syncStatus = 'Syncing…';
     emit();
     try {
-      await request("save", JSON.stringify(state));
+      await request('save', JSON.stringify(state));
       const result = await request(
-        "exchange",
+        'exchange',
         JSON.stringify(Object.values(state.changes)),
       );
       let next = state;
@@ -100,7 +100,7 @@ export function sync() {
         );
       syncStatus = `Folder checked ${new Date().toLocaleTimeString()}`;
     } catch (e) {
-      syncStatus = "Sync pending — retry";
+      syncStatus = 'Sync pending — retry';
       throw e;
     } finally {
       emit();
@@ -109,20 +109,20 @@ export function sync() {
 }
 export function chooseFolder() {
   return run(async () => {
-    const r = await request("choose");
+    const r = await request('choose');
     if (r.folder) {
       folder = r.folder;
-      error = "";
-      syncStatus = "Folder connected";
+      error = '';
+      syncStatus = 'Folder connected';
       emit();
     }
   }).then(sync);
 }
 export function disconnect() {
   return run(async () => {
-    await request("disconnect");
-    folder = "";
-    syncStatus = "Choose a sync folder";
+    await request('disconnect');
+    folder = '';
+    syncStatus = 'Choose a sync folder';
     emit();
   });
 }
