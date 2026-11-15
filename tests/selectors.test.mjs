@@ -1,0 +1,150 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import ts from 'typescript';
+const source = readFileSync(
+  new URL('../packages/app/src/storage/selectors.ts', import.meta.url),
+  'utf8',
+);
+const code = ts.transpileModule(source, {
+  compilerOptions: {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2022,
+  },
+}).outputText;
+const { organize, visibleTasks, groupTasks } = await import(
+  'data:text/javascript;base64,' + Buffer.from(code).toString('base64')
+);
+const DAY = 86400000;
+const record = (id, fields = {}) => ({
+  id,
+  kind: 'task',
+  list: '',
+  icon: '',
+  deletedFrom: '',
+  title: id,
+  notes: '',
+  completed: false,
+  completedAt: 0,
+  trashed: false,
+  trashedAt: 0,
+  deleted: false,
+  created: 1,
+  stamps: {},
+  ...fields,
+});
+const library = (...records) =>
+  organize({ tasks: Object.fromEntries(records.map((r) => [r.id, r])) });
+const show = (lib, view, options = {}) =>
+  visibleTasks(lib, view, {
+    list: '',
+    editing: null,
+    lingering: {},
+    phone: false,
+    ...options,
+  }).map((t) => t.id);
+test('organize sorts areas oldest first and projects newest first, skipping deleted records', () => {
+  const lib = library(
+    record('a2', { kind: 'area', created: 2 }),
+    record('a1', { kind: 'area', created: 1 }),
+    record('p1', { kind: 'project', created: 1 }),
+    record('p2', { kind: 'project', created: 2 }),
+    record('gone', { kind: 'project', created: 3, deleted: true }),
+    record('t'),
+  );
+  assert.deepEqual(
+    lib.areas.map((a) => a.id),
+    ['a1', 'a2'],
+  );
+  assert.deepEqual(
+    lib.projects.map((p) => p.id),
+    ['p2', 'p1'],
+  );
+  assert.deepEqual(Object.keys(lib.lists).sort(), ['a1', 'a2', 'p1', 'p2']);
+  assert.deepEqual(
+    lib.todos.map((t) => t.id),
+    ['t'],
+  );
+});
+test('membership falls back to the Inbox or no area when the list is gone', () => {
+  const lib = library(
+    record('area', { kind: 'area' }),
+    record('p', { kind: 'project', list: 'area' }),
+    record('orphan', { kind: 'project', list: 'missing' }),
+    record('in-p', { list: 'p' }),
+    record('lost', { list: 'missing' }),
+  );
+  assert.equal(lib.areaOf(lib.lists.p), 'area');
+  assert.equal(lib.areaOf(lib.lists.orphan), '');
+  assert.equal(lib.listOf(lib.todos.find((t) => t.id === 'in-p')), 'p');
+  assert.equal(lib.listOf(lib.todos.find((t) => t.id === 'lost')), '');
+});
+test('progress and Inbox count ignore trashed to-dos', () => {
+  const lib = library(
+    record('p', { kind: 'project' }),
+    record('done', { list: 'p', completed: true }),
+    record('open', { list: 'p' }),
+    record('trashed', { list: 'p', trashed: true }),
+    record('inbox'),
+    record('blank', { title: '  ' }),
+    record('inbox-done', { completed: true }),
+    record('inbox-trashed', { trashed: true }),
+  );
+  assert.equal(lib.progress('p'), 0.5);
+  assert.equal(lib.progress('empty'), 0);
+  assert.equal(lib.inboxCount, 1);
+});
+test('the Inbox hides completed to-dos unless lingering, edited, or on the phone', () => {
+  const lib = library(
+    record('old', { created: 1 }),
+    record('new', { created: 2 }),
+    record('done', { created: 3, completed: true }),
+    record('trashed', { trashed: true }),
+    record('in-p', { list: 'p' }),
+    record('p', { kind: 'project' }),
+  );
+  assert.deepEqual(show(lib, 'inbox'), ['new', 'old']);
+  assert.deepEqual(show(lib, 'inbox', { lingering: { done: true } }), [
+    'done',
+    'new',
+    'old',
+  ]);
+  assert.deepEqual(show(lib, 'inbox', { editing: 'done' }), [
+    'done',
+    'new',
+    'old',
+  ]);
+  assert.deepEqual(show(lib, 'inbox', { phone: true }), ['done', 'new', 'old']);
+  assert.deepEqual(show(lib, 'p', { list: 'p' }), ['in-p']);
+});
+test('the Logbook and Trash sort by completion and trash time', () => {
+  const lib = library(
+    record('early', { completed: true, completedAt: 10 }),
+    record('late', { completed: true, completedAt: 20 }),
+    record('lingering', { completed: true, completedAt: 30 }),
+    record('t1', { trashed: true, trashedAt: 1 }),
+    record('t2', { trashed: true, trashedAt: 2, completed: true }),
+  );
+  assert.deepEqual(show(lib, 'logbook', { lingering: { lingering: true } }), [
+    'late',
+    'early',
+  ]);
+  assert.deepEqual(show(lib, 'trash'), ['t2', 't1']);
+});
+test('the Logbook groups by completion day; other views have one group', () => {
+  const today = new Date(2026, 10, 15, 12).getTime();
+  const tasks = [
+    record('a', { completed: true, completedAt: today }),
+    record('b', { completed: true, completedAt: today - 60000 }),
+    record('c', { completed: true, completedAt: today - DAY }),
+  ];
+  assert.deepEqual(
+    groupTasks(tasks, 'logbook').map((g) => g.tasks.map((t) => t.id)),
+    [['a', 'b'], ['c']],
+  );
+  assert.deepEqual(
+    groupTasks(tasks, 'inbox').map((g) => g.key),
+    ['inbox'],
+  );
+  assert.deepEqual(groupTasks([], 'inbox'), []);
+});

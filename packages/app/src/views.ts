@@ -31,4 +31,3 @@ export function dayName(time: number, short: boolean) {
       : { weekday: 'long', day: 'numeric', month: 'long' },
   );
 }
-export const completedTime = (t: Task) => t.completedAt || t.created;

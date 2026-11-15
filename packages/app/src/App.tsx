@@ -10,9 +10,14 @@ import {
 import * as store from './storage/store';
 import { native } from './storage/driver';
 import type { Task } from './storage/model';
-import { phoneQuery, usePhone } from './hooks/usePhone';
 import {
   completedTime,
+  groupTasks,
+  organize,
+  visibleTasks,
+} from './storage/selectors';
+import { phoneQuery, usePhone } from './hooks/usePhone';
+import {
   dayName,
   empties,
   isStatic,
@@ -60,67 +65,30 @@ export function App() {
   const footer = useRef<HTMLElement>(null);
   const editorArea = useRef<HTMLLIElement>(null);
   const closeEditor = useRef<(then?: (id: string) => void) => void>(() => {});
-  const live = Object.values(state.tasks).filter((t) => !t.deleted);
-  const areas = live
-    .filter((t) => t.kind === 'area')
-    .sort((a, b) => a.created - b.created || a.id.localeCompare(b.id));
-  const projects = live
-    .filter((t) => t.kind === 'project')
-    .sort((a, b) => b.created - a.created || a.id.localeCompare(b.id));
-  const lists = Object.fromEntries(
-    [...areas, ...projects].map((l) => [l.id, l]),
-  );
-  const todos = live.filter((t) => t.kind === 'task');
-  // To-dos whose project was deleted on another device fall back to the Inbox.
-  const listOf = (t: Task) => (lists[t.list] ? t.list : '');
-  const areaOf = (p: Task) => (lists[p.list]?.kind === 'area' ? p.list : '');
+  const library = organize(state);
+  const { areas, projects, lists, todos, areaOf, progress, inboxCount } =
+    library;
   const listName = (t: Task) => {
     const list = lists[t.list];
     return list ? list.title || untitled(list) : t.deletedFrom;
   };
-  function progress(id: string) {
-    const all = todos.filter((t) => t.list === id && !t.trashed);
-    return all.length ? all.filter((t) => t.completed).length / all.length : 0;
-  }
   // The phone layout has no navigation, so it always shows the Inbox.
   const view: View =
     phone || !(isStatic(selectedView) || lists[selectedView])
       ? 'inbox'
       : selectedView;
   const openList = isStatic(view) ? undefined : lists[view];
-  const tasks = todos
-    .filter((t) =>
-      view === 'trash'
-        ? t.trashed
-        : !t.trashed &&
-          (t.id === editing ||
-            (view === 'logbook'
-              ? t.completed && !lingering[t.id]
-              : listOf(t) === (openList?.id ?? '') &&
-                (phone || !t.completed || lingering[t.id]))),
-    )
-    .sort(
-      view === 'logbook'
-        ? (a, b) => completedTime(b) - completedTime(a)
-        : view === 'trash'
-          ? (a, b) => b.trashedAt - a.trashedAt
-          : (a, b) => b.created - a.created || a.id.localeCompare(b.id),
-    );
-  const groups: { key: string; label: string; tasks: Task[] }[] = [];
-  for (const task of tasks) {
-    const key =
-      view === 'logbook' ? new Date(completedTime(task)).toDateString() : view;
-    if (groups.at(-1)?.key !== key)
-      groups.push({
-        key,
-        label: view === 'logbook' ? dayName(completedTime(task), false) : '',
-        tasks: [],
-      });
-    groups.at(-1)!.tasks.push(task);
-  }
-  const count = todos.filter(
-    (t) => !listOf(t) && !t.trashed && !t.completed && t.title.trim(),
-  ).length;
+  const tasks = visibleTasks(library, view, {
+    list: openList?.id ?? '',
+    editing,
+    lingering,
+    phone,
+  });
+  const groups = groupTasks(tasks, view).map((group) => ({
+    ...group,
+    label:
+      view === 'logbook' ? dayName(completedTime(group.tasks[0]), false) : '',
+  }));
   const looseProjects = projects.filter((p) => !areaOf(p));
   const dragging = drag ? lists[drag] : undefined;
   useLayoutEffect(() => {
@@ -387,12 +355,12 @@ export function App() {
               >
                 <ViewIcon view={v} />
                 <span className="sidebar-title">{titles[v]}</span>
-                {v === 'inbox' && count > 0 && (
+                {v === 'inbox' && inboxCount > 0 && (
                   <span
                     className="sidebar-count"
-                    aria-label={`${count} incomplete tasks`}
+                    aria-label={`${inboxCount} incomplete tasks`}
                   >
-                    {count}
+                    {inboxCount}
                   </span>
                 )}
               </button>

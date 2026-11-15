@@ -74,7 +74,7 @@ pnpm check:desktop
 pnpm ios:build
 ```
 
-Storage tests cover concurrent field edits, deterministic conflict resolution, duplicate and reordered imports, tombstones, malformed/future changes, SQLite restart and Unicode persistence, bookmarks, two local stores exchanging through a temporary folder, immutable-file collision rejection, retry, and disconnect.
+Storage tests cover which to-dos each view shows and in what order, Logbook day groups, concurrent field edits, deterministic conflict resolution, duplicate and reordered imports, tombstones, malformed/future changes, SQLite restart and Unicode persistence, bookmarks, two local stores exchanging through a temporary folder, immutable-file collision rejection, retry, and disconnect.
 
 Validated during implementation: TypeScript, ESLint, web build, storage tests, Electron development and packaged-app smoke checks, packaged SQLite helper execution, and unsigned iOS simulator compilation. Browser checks cover desktop and phone resting/editing layouts, title persistence after reload, and overflow/breakpoint checks at 320, 390, 699, 700, 1000, and 1440px. Physical iPhone installation, security-scoped access across device restarts, real iCloud delivery, offline two-device convergence, and native keyboard/safe-area appearance still require testing with your devices and Apple account.
 

@@ -9,7 +9,12 @@ try {
   const commands = [
     [
       process.execPath,
-      ['--test', 'tests/model.test.mjs', 'tests/store.test.mjs'],
+      [
+        '--test',
+        'tests/model.test.mjs',
+        'tests/selectors.test.mjs',
+        'tests/store.test.mjs',
+      ],
     ],
     [
       'xcrun',
