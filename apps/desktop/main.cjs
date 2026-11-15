@@ -8,7 +8,7 @@ if (devUrl && devUrl !== 'http://127.0.0.1:5173') throw new Error('Unexpected de
 function createWindow() {
   const win = new BrowserWindow({
     width: 1180, height: 850, minWidth: 390, minHeight: 600,
-    backgroundColor: '#f8f9f5', title: 'Sunto',
+    backgroundColor: '#ffffff', title: 'Sunto',
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -20,7 +20,7 @@ function createWindow() {
       try {
         const result = await win.webContents.executeJavaScript(`({ title: document.title, heading: document.querySelector('h1')?.textContent, node: typeof window.require, process: typeof window.process, platform: window.sunto?.platform })`);
         console.log(JSON.stringify(result));
-        if (result.title !== 'Sunto' || result.heading !== 'A fresh start.' || result.node !== 'undefined' || result.process !== 'undefined' || result.platform !== 'macos') throw new Error('Desktop smoke check failed');
+        if (result.title !== 'Sunto' || result.heading !== 'Inbox' || result.node !== 'undefined' || result.process !== 'undefined' || result.platform !== 'macos') throw new Error('Desktop smoke check failed');
         app.exit(0);
       } catch (error) { console.error(error); app.exit(1); }
     });

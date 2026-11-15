@@ -19,7 +19,7 @@
     "ios:build": "pnpm ios:sync && xcodebuild -project apps/mobile/ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath apps/mobile/DerivedData CODE_SIGNING_ALLOWED=NO build"
   },
   "devDependencies": {
-    "typescript": "latest",
+    "typescript": "^6.0.0",
     "eslint": "^9.0.0",
     "@eslint/js": "^9.0.0",
     "typescript-eslint": "latest",
