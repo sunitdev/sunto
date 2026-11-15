@@ -8,3 +8,5 @@ apps/mobile/ios/App/App/capacitor.config.json
 apps/mobile/ios/App/App/config.xml
 DerivedData/
 **/xcuserdata/
+
+apps/desktop/bin/

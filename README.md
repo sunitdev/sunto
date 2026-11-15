@@ -1,75 +1,64 @@
 # Sunto
 
-A shared React + TypeScript app with Electron for macOS and Capacitor for iOS.
-The shared app displays a static Minimal Inbox UI based on the supplied desktop and phone reference. It includes five sample tasks, one completed task, and a desktop Inbox count of four. Checkboxes and titles are presentation only: there is no editing, navigation, persistence, or backend.
+A shared React + TypeScript todo app with Electron for macOS and Capacitor for iPhone. The responsive Inbox follows the supplied Minimal Todo design: inline title/notes editing, completion, a desktop add toolbar, and a phone floating add button. New installations start empty.
 
-The light UI uses a bundled Inter font (license in `packages/app/src/assets/Inter-LICENSE.txt`). At widths below 700px it switches to the phone layout; larger windows show the 240px sidebar. iOS safe-area insets are handled by the shared styles.
+## Run locally
 
-## Prerequisites
-
-- Node.js 22.12+ (the local development baseline is recorded in `.nvmrc`).
-- pnpm 12.4.2.
-- macOS with Xcode 26+ and an installed iOS simulator for mobile builds.
-- Internet access to npm, Electron binary downloads, and Swift package repositories.
-
-## First run
+Requires Node 22.12+, pnpm 12.4.2, and Xcode with command-line tools. Native storage uses Apple's system SQLite library, compiled from the same Swift implementation for both platforms.
 
 ```sh
-pnpm install
+pnpm install --frozen-lockfile
 pnpm dev:desktop
 ```
 
-For browser-only development, run `pnpm dev:web` and open `http://127.0.0.1:5173`.
-The desktop command starts Vite and Electron together and stops both when the desktop process exits or you press Ctrl+C. Port 5173 must be free.
+`pnpm dev:web` runs browser development at http://127.0.0.1:5173. Browser mode persists in IndexedDB; it has no iCloud folder integration. Samples for visual review are exported from `packages/app/src/storage/fixtures.ts` and are never inserted automatically.
 
-For iOS:
+To build the local unsigned Mac application, run `pnpm build:desktop`. The storage helper is built automatically and included outside Electron's ASAR archive. Output is under `apps/desktop/release/mac*/Sunto.app`. It targets the build machine's architecture; distribution signing and notarization are not configured.
+
+## Install on your iPhone for personal use
 
 ```sh
 pnpm ios:sync
 pnpm ios:open
 ```
 
-The first sync generates `apps/mobile/ios` using Capacitor's native template (Swift Package Manager), then copies the production UI into it. Later syncs rebuild the UI and update the existing project. Commit the generated native source files; bundled web assets and user-specific Xcode settings are ignored.
+In Xcode, choose the App target's Signing & Capabilities tab, select your Apple account's Personal Team, and enable automatic signing. If necessary, replace `com.sunto.app` with a unique bundle identifier (also update the Capacitor and desktop configurations). Select your connected iPhone, enable Developer Mode if requested, and Run. No App Store publication or CloudKit container is needed.
 
-In Xcode, select the **App** scheme and an iPhone simulator, then Run. To use a physical device, select a development team under Signing & Capabilities and replace the provisional `com.sunto.app` identifier with one you own. Update the identifier in the Capacitor config, native Xcode target, and desktop packaging configuration together before distribution.
+Free provisioning expires after seven days. Rebuild and install from Xcode using the same bundle identifier; avoid deleting the app, which removes local-only data. Provisioning, trust prompts, and device installation require your Apple account and device. A paid membership is optional for this workflow, but removes the free provisioning constraint.
 
-## Commands
+The native Xcode sources are retained in the repository. `pnpm ios:sync` rebuilds and copies web assets without replacing the custom view controller or storage plugin. The project references `native/StorageCore.swift` directly. Do not delete and regenerate the iOS project without restoring those customizations.
 
-| Command | Purpose |
-| --- | --- |
-| `pnpm dev:web` | Shared UI development in a browser |
-| `pnpm dev:desktop` | Shared UI in the Electron shell with hot refresh |
-| `pnpm build:web` | Type-check and build the shared UI |
-| `pnpm build:desktop` | Build UI and create a local unsigned macOS `.app` |
-| `pnpm check:desktop` | Build UI, launch Electron, verify rendering and Node isolation |
-| `pnpm ios:sync` | Build UI, initialize iOS if needed, and sync native assets |
-| `pnpm ios:open` | Open the generated iOS project in Xcode |
-| `pnpm ios:build` | Sync and build an unsigned iOS simulator app |
-| `pnpm typecheck` | Check TypeScript and shell JavaScript |
-| `pnpm lint` | Lint source and configuration |
+## Connect iCloud folder sync
 
-The macOS package is written under `apps/desktop/release/mac*/Sunto.app`, for the host architecture. This is a local development package; distribution signing, notarization, custom icons, installers, and automatic updates are future work.
-The simulator app is written under `apps/mobile/DerivedData/Build/Products/Debug-iphonesimulator/App.app`.
+1. Create a folder named **Sunto** in iCloud Drive using Finder or Files.
+2. Open the app's **··· → Storage settings → Choose folder** on your Mac and select that folder.
+3. On your iPhone, choose the same folder through the system Files picker.
+4. Keep both apps open while iCloud delivers the changes. **Sync now** forces another folder check.
 
-## Structure
+The picker grants access; the iPhone cannot silently open a hardcoded iCloud path. Sunto remembers the folder using a security-scoped bookmark. Reselect the folder if permission expires or the folder moves. Disconnecting stops sync but preserves local tasks and the folder's files.
 
-- `packages/app`: the single UI implementation, Vite config, styles, and platform adapter.
-- `apps/desktop`: Electron main process, sandboxed preload, and macOS packaging config.
-- `apps/mobile`: Capacitor configuration and generated iOS project after first sync.
-- `scripts`: development process management and repeatable iOS initialization.
+SQLite remains local: `tasks.sqlite` in Electron's Sunto user-data directory on Mac, and `Library/Application Support/Sunto` inside the iPhone app container. The database uses a versioned `app_state` table containing the complete task snapshot and change journal, saved together in a SQLite transaction with full synchronization. React never accesses SQLite or the filesystem directly.
 
-Add platform-dependent capabilities to `packages/app/src/platform.ts` or adjacent adapter modules. Keep Electron/Node dependencies out of React components. For desktop capabilities, expose a narrow typed operation through preload rather than exposing IPC or filesystem access directly. For mobile, call Capacitor plugins through the same adapter boundary.
+The chosen folder contains `sunto-changes-v1/*.json`: immutable change records published with coordinated, atomic writes. These files contain your task text, so select a private folder. Every edit has a UUID, device ID, logical revision, and changed fields. Imports are idempotent. Concurrent edits to different fields are preserved; competing edits to the same field use logical revision followed by device ID as a deterministic tie-break. Blank-title cleanup creates a deletion tombstone, so delayed title edits cannot resurrect removed tasks.
 
-Electron uses context isolation, renderer sandboxing, disabled Node integration, blocked new windows/navigation, and denied permission requests by default. The preload currently exposes only a platform label. Production HTML restricts scripts to bundled assets; development alone allows the inline React refresh preamble. See [Electron security guidance](https://www.electronjs.org/docs/latest/tutorial/security).
+Local edits work offline. A folder check runs every ten seconds while the app is active, on focus/foreground visibility changes, and when requested. iOS may suspend the app; continuous background sync is not provided. “Folder checked” confirms local exchange only, not delivery to another device. iCloud delivery can take time. Native directory access uses file coordination; v1 uses periodic checks rather than native file-presenter notifications.
 
-Capacitor's native integration follows its [Swift Package Manager workflow](https://capacitorjs.com/docs/ios/spm).
+Save failures show an error and retain changes in memory for Retry; do not quit until a failed local save succeeds. Title and notes changes are debounced by 250ms, flushed when closing/switching editors and on page visibility/pagehide events. Force termination can still lose an uncommitted draft. Completion changes persist immediately. Corrupt or unsupported database formats are reported without overwriting the stored database. Invalid sync records report an error; valid parsed records can still be imported. Sync history is retained without compaction in v1, so files and database size grow over time.
+
+For recovery after reinstall, choose the original sync folder: retained change records rebuild the tasks. Changes that never reached that folder cannot be recovered after deleting the local app. Do not remove change files manually; they are the recovery journal.
 
 ## Validation
 
-Run `pnpm typecheck`, `pnpm lint`, and `pnpm check:desktop` for source, build, and Electron checks. The desktop smoke check expects the Inbox heading, the macOS platform bridge, and no renderer Node globals.
+```sh
+pnpm typecheck
+pnpm lint
+pnpm test:storage
+pnpm check:desktop
+pnpm ios:build
+```
 
-For visual review, compare the UI at 1000 × 680 and 390 × 844 against the supplied reference. Also check 320px, the 700px breakpoint, and larger desktop windows. The interface fills its host window; Electron uses its native title bar and window controls.
+Storage tests cover concurrent field edits, deterministic conflict resolution, duplicate and reordered imports, tombstones, malformed/future changes, SQLite restart and Unicode persistence, bookmarks, two local stores exchanging through a temporary folder, immutable-file collision rejection, retry, and disconnect.
 
-The iOS native project is generated by `pnpm ios:sync`; native builds require Xcode and an installed simulator. Use `pnpm ios:build` to validate a simulator build, then Xcode Run to inspect safe-area layout.
+Validated during implementation: TypeScript, ESLint, web build, storage tests, Electron development and packaged-app smoke checks, packaged SQLite helper execution, and unsigned iOS simulator compilation. Browser checks cover desktop and phone resting/editing layouts, title persistence after reload, and overflow/breakpoint checks at 320, 390, 699, 700, 1000, and 1440px. Physical iPhone installation, security-scoped access across device restarts, real iCloud delivery, offline two-device convergence, and native keyboard/safe-area appearance still require testing with your devices and Apple account.
 
-Validated for this UI change: TypeScript, ESLint, production web build, Electron smoke check, frozen-lockfile installation, and an unsigned iOS simulator build using a temporary generated native project. Browser layouts were checked at 320px, 390px, 699px, 700px, 1000px, and 1440px. Native simulator safe-area appearance still needs a visual device review.
+Electron keeps context isolation, sandboxing, disabled renderer Node integration, and a narrow validated IPC storage bridge. The iPhone plugin serializes storage work off the main thread. The shared merge engine lives in `packages/app/src/storage`; platform-specific native persistence and coordinated folder access live in `native/StorageCore.swift`.

@@ -1,10 +1,18 @@
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('node:path');
 
 app.setName('Sunto');
 const devUrl = !app.isPackaged ? process.env.SUNTO_DEV_URL : undefined;
 if (devUrl && devUrl !== 'http://127.0.0.1:5173') throw new Error('Unexpected development URL');
 
+const { storageRequest } = require('./storage.cjs');
+let storageQueue = Promise.resolve();
+ipcMain.handle('sunto:storage', (event, options) => {
+  if (event.senderFrame !== event.sender.mainFrame || !options || !['load', 'save', 'choose', 'disconnect', 'exchange'].includes(options.command) || (options.data !== undefined && typeof options.data !== 'string')) throw new Error('Invalid storage request');
+  const job = storageQueue.then(() => storageRequest(app.getPath('userData'), options));
+  storageQueue = job.then(() => undefined, () => undefined);
+  return job;
+});
 function createWindow() {
   const win = new BrowserWindow({
     width: 1180, height: 850, minWidth: 390, minHeight: 600,

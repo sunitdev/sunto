@@ -1,8 +1,5 @@
+import './storage/driver';
 import { Capacitor } from '@capacitor/core';
-
-declare global {
-  interface Window { sunto?: Readonly<{ platform: 'macos' }> }
-}
 
 // Native capabilities belong here, keeping UI components independent of each shell.
 export function getPlatform(): 'macos' | 'ios' | 'web' {

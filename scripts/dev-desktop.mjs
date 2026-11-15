@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,6 +7,8 @@ const appDir = fileURLToPath(new URL('../packages/app/', import.meta.url));
 const desktopDir = fileURLToPath(new URL('../apps/desktop/', import.meta.url));
 const appRequire = createRequire(new URL('../packages/app/package.json', import.meta.url));
 const desktopRequire = createRequire(new URL('../apps/desktop/package.json', import.meta.url));
+const build = spawnSync(process.execPath, [fileURLToPath(new URL('./build-storage.mjs', import.meta.url))], { stdio: 'inherit' });
+if (build.status !== 0) process.exit(build.status ?? 1);
 const electron = desktopRequire('electron');
 const vite = spawn(process.execPath, [join(dirname(appRequire.resolve('vite/package.json')), 'bin/vite.js'), '--host', '127.0.0.1'], { cwd: appDir, stdio: 'inherit' });
 /** @type {import('node:child_process').ChildProcess | undefined} */

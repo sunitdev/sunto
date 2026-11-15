@@ -9,7 +9,10 @@
   "scripts": {
     "dev": "electron .",
     "build": "electron-builder --mac dir",
-    "smoke": "electron . --smoke-test"
+    "smoke": "electron . --smoke-test",
+    "predev": "node ../../scripts/build-storage.mjs",
+    "prebuild": "node ../../scripts/build-storage.mjs",
+    "presmoke": "node ../../scripts/build-storage.mjs"
   },
   "devDependencies": {
     "electron": "45.3.2",
@@ -27,11 +30,16 @@
       {
         "from": "../../packages/app/dist",
         "to": "renderer"
-      }
+      },
+      "storage.cjs",
+      "bin/sunto-storage"
     ],
     "mac": {
       "category": "public.app-category.productivity",
       "identity": null
-    }
+    },
+    "asarUnpack": [
+      "bin/sunto-storage"
+    ]
   }
 }

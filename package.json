@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit && pnpm --filter @sunto/app typecheck",
     "lint": "eslint .",
     "check:desktop": "pnpm build:web && pnpm --filter @sunto/desktop smoke",
-    "ios:build": "pnpm ios:sync && xcodebuild -project apps/mobile/ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath apps/mobile/DerivedData CODE_SIGNING_ALLOWED=NO build"
+    "ios:build": "pnpm ios:sync && xcodebuild -project apps/mobile/ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath apps/mobile/DerivedData CODE_SIGNING_ALLOWED=NO build",
+    "test:storage": "node scripts/test-storage.mjs"
   },
   "devDependencies": {
     "typescript": "^6.0.0",
