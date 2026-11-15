@@ -239,3 +239,57 @@ test('completing a repeating to-do adds the next one, and the day plan replaces 
   assert.equal(tasks[once].planned, '2026-03-10');
   assert.equal(tasks[next[0].id].planned, '2026-03-12');
 });
+test('epics take colours in turn, and a to-do leaves its epic when deleted, moved or its project is deleted', async () => {
+  let saved;
+  globalThis.suntoTestRequest = async (command, data) => {
+    if (command === 'save') saved = data;
+    return command === 'load' ? { data: saved } : {};
+  };
+  const driverURL = compile(
+    'export const native = false; export const request = (command, data) => globalThis.suntoTestRequest(command, data);',
+  );
+  const source = readFileSync(
+    new URL('../packages/app/src/storage/store.ts', import.meta.url),
+    'utf8',
+  )
+    .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
+    .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
+    .replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL));
+  const store = await import(compile(source + '\n// epic test instance'));
+  await store.start();
+  const project = await store.addList('project');
+  const first = await store.addEpic(project);
+  const second = await store.addEpic(project);
+  const kept = await store.add(project, '', { epic: first });
+  const moved = await store.add(project, '', { epic: first });
+  const repeating = await store.add(project, '', {
+    title: 'Water plants',
+    epic: second,
+    date: '2026-03-10',
+    repeat: JSON.stringify({ freq: 'daily', interval: 1 }),
+  });
+  let { tasks } = store.getSnapshot().state;
+  assert.equal(tasks[first].kind, 'epic');
+  assert.equal(tasks[first].list, project);
+  assert.equal(tasks[first].color, store.epicColors[0]);
+  assert.equal(tasks[second].color, store.epicColors[1]);
+  await store.setCompleted(repeating, true);
+  ({ tasks } = store.getSnapshot().state);
+  const next = Object.values(tasks).find(
+    (t) => t.id !== repeating && t.title === 'Water plants',
+  );
+  assert.equal(next.epic, second);
+  await store.move(moved, '');
+  await store.deleteEpic(first);
+  ({ tasks } = store.getSnapshot().state);
+  assert.equal(tasks[first].deleted, true);
+  assert.equal(tasks[kept].epic, '');
+  assert.equal(tasks[kept].list, project);
+  assert.equal(tasks[moved].epic, '');
+  await store.update(kept, { title: 'Kept', epic: second });
+  await store.deleteProject(project);
+  ({ tasks } = store.getSnapshot().state);
+  assert.equal(tasks[second].deleted, true);
+  assert.equal(tasks[kept].trashed, true);
+  assert.equal(tasks[kept].epic, '');
+});

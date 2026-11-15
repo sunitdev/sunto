@@ -254,3 +254,29 @@ export function CalendarIcon() {
     </svg>
   );
 }
+export function TagIcon() {
+  return (
+    <svg
+      className="tag-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.4 6.4a1.5 1.5 0 0 1-2.1 0z" />
+      <circle cx="8" cy="8" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+// An epic's colour.
+export function EpicDot({ color }: { color: string }) {
+  return (
+    <span
+      className="epic-dot"
+      style={{ background: color }}
+      aria-hidden="true"
+    />
+  );
+}

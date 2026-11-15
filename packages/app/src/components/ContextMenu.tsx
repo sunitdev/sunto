@@ -1,10 +1,18 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useDismiss } from '../hooks/useDismiss';
+import { EpicDot } from './icons';
 
-// A command, optionally checked as one of a set of choices or styled as
-// destructive; a heading over the commands that follow; or a divider.
+// A command, optionally checked as one of a set of choices, styled as
+// destructive or marked with a colour dot; a heading over the commands that
+// follow; or a divider.
 export type MenuItem =
-  | { label: string; action: () => void; checked?: boolean; danger?: boolean }
+  | {
+      label: string;
+      action: () => void;
+      checked?: boolean;
+      danger?: boolean;
+      dot?: string;
+    }
   | { heading: string }
   | 'divider';
 export function ContextMenu({
@@ -74,6 +82,7 @@ export function ContextMenu({
               item.action();
             }}
           >
+            {item.dot && <EpicDot color={item.dot} />}
             {item.label}
           </button>
         ),

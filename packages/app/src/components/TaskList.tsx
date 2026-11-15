@@ -2,10 +2,10 @@ import { useState, type RefObject } from 'react';
 import type { Task } from '../storage/model';
 import { completedTime, type Group, type Library } from '../storage/selectors';
 import { startTaskDrag } from '../drag';
-import { dayName, dueLabel, untitled, type View } from '../views';
+import { dayName, dueLabel, epicStyle, untitled, type View } from '../views';
 import { Check } from './Check';
 import { Editor } from './Editor';
-import { InboxIcon, ListIcon, Plus, RepeatIcon } from './icons';
+import { EpicDot, InboxIcon, ListIcon, Plus, RepeatIcon } from './icons';
 import { SectionHeader } from './SectionHeader';
 
 export type ItemProps = {
@@ -23,9 +23,10 @@ export type ItemProps = {
   onMenu: (task: Task, x: number, y: number) => void;
   onMove: (task: Task, anchor: DOMRect) => void;
   onDate: (task: Task, anchor: DOMRect) => void;
+  onEpic: (task: Task, anchor: DOMRect) => void;
 };
 // One to-do, or its editor. On desktop, to-dos in the Inbox, projects and
-// areas can be dragged onto another list.
+// areas can be dragged onto another list, or onto an epic of their project.
 export function TaskItem({
   task,
   view,
@@ -42,12 +43,14 @@ export function TaskItem({
   onMenu,
   onMove,
   onDate,
+  onEpic,
 }: ItemProps & { task: Task }) {
   const [dragging, setDragging] = useState(false);
   const archive = view === 'logbook' || view === 'trash';
   const list = library.lists[library.listOf(task)];
   const listName = list ? list.title || untitled(list) : task.deletedFrom;
   const due = task.date && !task.completed && dueLabel(task.date, today);
+  const epic = library.epicOf(task);
   return (
     <li
       data-task={task.id}
@@ -60,6 +63,7 @@ export function TaskItem({
           today={today}
           list={list}
           progress={list ? library.progress(list.id) : 0}
+          epic={epic}
           close={closeEditor}
           onToggle={onToggle}
           onMove={
@@ -67,6 +71,11 @@ export function TaskItem({
           }
           onDate={
             phone || task.trashed ? undefined : (anchor) => onDate(task, anchor)
+          }
+          onEpic={
+            phone || task.trashed || list?.kind !== 'project'
+              ? undefined
+              : (anchor) => onEpic(task, anchor)
           }
         />
       ) : (
@@ -104,6 +113,12 @@ export function TaskItem({
               <span className="task-list-name">{listName}</span>
             )}
           </button>
+          {epic && (
+            <span className="task-epic" style={epicStyle(epic)}>
+              <EpicDot color={epic.color} />
+              <span>{epic.title || 'New Epic'}</span>
+            </span>
+          )}
           {due && (
             <span className={`task-due${due.overdue ? ' is-overdue' : ''}`}>
               {task.repeat && <RepeatIcon label="Repeats" />}

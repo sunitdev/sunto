@@ -522,6 +522,154 @@
   line-height: 18px;
   font-weight: 500;
 }
+/* A project's epics: chips that filter its to-dos, coloured by --epic. */
+.epic-bar {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: -6px var(--gutter) 14px;
+}
+.epic-chip,
+.epic-add,
+.epic-name {
+  display: flex;
+  align-items: center;
+  height: 26px;
+  border: 1px solid var(--rule);
+  border-radius: 13px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+}
+.epic-chip {
+  gap: 6px;
+  padding: 0 10px 0 9px;
+  cursor: pointer;
+}
+.epic-chip[aria-pressed='true'] {
+  border-color: var(--epic);
+  background: color-mix(in srgb, var(--epic) 18%, transparent);
+}
+.epic-chip.is-drop {
+  box-shadow: inset 0 0 0 1.5px var(--epic);
+}
+.epic-chip.epic-all {
+  padding: 0 11px;
+}
+.epic-all[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--sel);
+}
+.epic-progress {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.epic-name {
+  min-width: 80px;
+  padding: 0 10px;
+  border: 1.5px solid var(--epic);
+  outline: none;
+  background: var(--pop);
+  color: inherit;
+}
+.epic-add {
+  gap: 5px;
+  padding: 0 11px 0 9px;
+  border-style: dashed;
+  color: var(--muted);
+  font-weight: 500;
+}
+.epic-add svg {
+  width: 11px;
+  height: 11px;
+  stroke-width: 2.6;
+}
+.epic-dot {
+  flex: none;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+}
+.context-menu .epic-dot {
+  margin: 0 6px 1px 0;
+  vertical-align: middle;
+}
+.task-epic {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 130px;
+  height: 20px;
+  margin: 4px 0 0 10px;
+  padding: 0 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--epic) 17%, transparent);
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+}
+.task-epic .epic-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+}
+.task-epic > span:last-child,
+.epic-pill > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.epic-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 140px;
+  height: 28px;
+  margin-left: 2px;
+  padding: 0 10px 0 8px;
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 16px;
+}
+.epic-pill:hover {
+  background: var(--sel);
+}
+.epic-pill.has-epic {
+  color: var(--fg);
+}
+.epic-pill .tag-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--icon);
+}
+/* On a card, the epic sits under the title, above the date. */
+.board .task-title {
+  flex-basis: calc(100% - 26px);
+}
+.board .task-epic {
+  gap: 4px;
+  height: auto;
+  margin: -3px 0 4px 26px;
+  padding: 1px 7px;
+  border-radius: 9px;
+  font-size: 10.5px;
+}
+.board .epic-pill {
+  height: 26px;
+  padding: 0 8px 0 6px;
+  font-size: 12px;
+}
+.board .epic-pill .tag-icon {
+  width: 12px;
+  height: 12px;
+}
 @media (width < 700px) {
   .task-check {
     width: 44px;

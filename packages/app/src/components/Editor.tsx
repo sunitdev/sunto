@@ -3,29 +3,40 @@ import type { Task } from '../storage/model';
 import { useDraft } from '../hooks/useDraft';
 import { dueLabel, untitled } from '../views';
 import { Check } from './Check';
-import { CalendarIcon, ListIcon, RepeatIcon, TrayIcon } from './icons';
+import {
+  CalendarIcon,
+  EpicDot,
+  ListIcon,
+  RepeatIcon,
+  TagIcon,
+  TrayIcon,
+} from './icons';
 
 // `list` is the to-do's project or area, shown on a button that opens
-// `onMove` with the button's bounds; another shows its date and opens
-// `onDate`.
+// `onMove` with the button's bounds; in a project, another shows its `epic`
+// and opens `onEpic`, and a third shows its date and opens `onDate`.
 export function Editor({
   task,
   today,
   list,
   progress,
+  epic,
   close,
   onToggle,
   onMove,
   onDate,
+  onEpic,
 }: {
   task: Task;
   today: string;
   list?: Task;
   progress: number;
+  epic?: Task;
   close: () => void;
   onToggle: (task: Task) => void;
   onMove?: (anchor: DOMRect) => void;
   onDate?: (anchor: DOMRect) => void;
+  onEpic?: (anchor: DOMRect) => void;
 }) {
   const listLabel = list ? list.title || untitled(list) : 'Inbox';
   const due = task.date ? dueLabel(task.date, today) : undefined;
@@ -83,6 +94,21 @@ export function Editor({
                 <TrayIcon />
               )}
               <span>{listLabel}</span>
+            </button>
+          )}
+          {onEpic && (
+            <button
+              className={`epic-pill${epic ? ' has-epic' : ''}`}
+              aria-label={
+                epic
+                  ? `Epic: ${epic.title || 'New Epic'}. Change epic`
+                  : 'Assign an epic'
+              }
+              aria-haspopup="menu"
+              onClick={(e) => onEpic(e.currentTarget.getBoundingClientRect())}
+            >
+              {epic ? <EpicDot color={epic.color} /> : <TagIcon />}
+              <span>{epic ? epic.title || 'New Epic' : 'Epic'}</span>
             </button>
           )}
           {onDate && (

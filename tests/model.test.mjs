@@ -143,6 +143,17 @@ test('list fields validate their types and default older records to Inbox to-dos
   assert.equal(sorted.tasks.section.kind, 'section');
   assert.equal(sorted.tasks.task.section, 'section');
   assert.equal(sorted.tasks.project.kanban, true);
+  const epic = mutate(sorted, 'epic', {
+    kind: 'epic',
+    list: 'project',
+    color: '#0EA5E9',
+  });
+  const tagged = mutate(epic, 'task', { epic: 'epic' });
+  assert.equal(tagged.tasks.epic.kind, 'epic');
+  assert.equal(tagged.tasks.epic.color, '#0EA5E9');
+  assert.equal(tagged.tasks.task.epic, 'epic');
+  assert.equal(legacy.tasks.task.epic, '');
+  assert.equal(legacy.tasks.task.color, '');
   for (const patch of [
     { kind: 'folder' },
     { list: null },
@@ -150,6 +161,11 @@ test('list fields validate their types and default older records to Inbox to-dos
     { deletedFrom: false },
     { section: 1 },
     { kanban: 'yes' },
+    { kind: 'tag' },
+    { epic: 2 },
+    { color: 'red' },
+    { color: '#fff' },
+    { color: '#12345g' },
   ])
     assert.throws(() =>
       merge(legacy, {

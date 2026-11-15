@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import type { Task } from './storage/model';
 import { daysBetween, parseDay } from './storage/dates';
 
@@ -15,6 +16,9 @@ export const isStatic = (view: View): view is StaticView =>
   Object.hasOwn(titles, view);
 export const untitled = (list: Task) =>
   list.kind === 'area' ? 'New Area' : 'New Project';
+// Gives an element its epic's colour as --epic.
+export const epicStyle = (epic: Task) =>
+  ({ '--epic': epic.color }) as CSSProperties;
 export const empties: Record<StaticView, string> = {
   inbox: 'Inbox is empty',
   today: 'Nothing due today',

@@ -1,0 +1,153 @@
+import { useCallback, useState } from 'react';
+import * as store from '../storage/store';
+import type { Task } from '../storage/model';
+import type { Library } from '../storage/selectors';
+import { taskDropTarget } from '../drag';
+import { useDraft } from '../hooks/useDraft';
+import { epicStyle } from '../views';
+import { ContextMenu } from './ContextMenu';
+import { EpicDot, Plus } from './icons';
+
+const colorNames = ['Red', 'Orange', 'Green', 'Blue', 'Purple', 'Pink'];
+
+// A project's epics as chips that filter its to-dos to one epic, each with
+// its count of completed to-dos. Double-click renames an epic, right-click
+// sets its colour or deletes it, and dropping a to-do on one assigns it.
+export function EpicBar({
+  project,
+  library,
+  filter,
+  setFilter,
+}: {
+  project: Task;
+  library: Library;
+  filter: string;
+  setFilter: (epic: string) => void;
+}) {
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(
+    null,
+  );
+  const [over, setOver] = useState<string | null>(null);
+  const closeMenu = useCallback(() => setMenu(null), []);
+  const epics = library.epicsOf(project.id);
+  const menuEpic = menu && epics.find((e) => e.id === menu.id);
+  return (
+    <div className="epic-bar" role="group" aria-label="Epics">
+      <button
+        className="epic-chip epic-all"
+        aria-pressed={!filter}
+        title="Show all to-dos"
+        onClick={() => setFilter('')}
+      >
+        All
+      </button>
+      {epics.map((epic) => {
+        const tasks = library.todos.filter(
+          (t) => t.list === project.id && t.epic === epic.id && !t.trashed,
+        );
+        const on = filter === epic.id;
+        // A new epic starts untitled, ready to be named.
+        return renaming === epic.id || !epic.title ? (
+          <EpicName key={epic.id} epic={epic} done={() => setRenaming(null)} />
+        ) : (
+          <button
+            key={epic.id}
+            className={`epic-chip${over === epic.id ? ' is-drop' : ''}`}
+            style={epicStyle(epic)}
+            aria-pressed={on}
+            title="Click to filter. Double-click to rename. Right-click for colour and delete."
+            onClick={() => setFilter(on ? '' : epic.id)}
+            onDoubleClick={() => setRenaming(epic.id)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setMenu({ id: epic.id, x: e.clientX, y: e.clientY });
+            }}
+            {...taskDropTarget(
+              (hover) =>
+                setOver((current) =>
+                  hover ? epic.id : current === epic.id ? null : current,
+                ),
+              (id) => {
+                if (store.getSnapshot().state.tasks[id]?.list === project.id)
+                  void store.update(id, { epic: epic.id });
+              },
+            )}
+          >
+            <EpicDot color={epic.color} />
+            <span>{epic.title}</span>
+            <span className="epic-progress">
+              {tasks.filter((t) => t.completed).length}/{tasks.length}
+            </span>
+          </button>
+        );
+      })}
+      <button
+        className="epic-add"
+        onClick={() => void store.addEpic(project.id)}
+      >
+        <Plus />
+        Epic
+      </button>
+      {menuEpic && menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          close={closeMenu}
+          items={[
+            { label: 'Rename', action: () => setRenaming(menuEpic.id) },
+            'divider',
+            { heading: 'Colour' },
+            ...store.epicColors.map((color, i) => ({
+              label: colorNames[i],
+              dot: color,
+              checked: menuEpic.color === color,
+              action: () => void store.update(menuEpic.id, { color }),
+            })),
+            'divider',
+            {
+              label: 'Delete Epic',
+              danger: true,
+              action: () => {
+                if (filter === menuEpic.id) setFilter('');
+                void store.deleteEpic(menuEpic.id);
+              },
+            },
+          ]}
+        />
+      )}
+    </div>
+  );
+}
+// An epic's name being edited; Enter or Escape finishes, and an epic left
+// without a name is called New Epic.
+function EpicName({ epic, done }: { epic: Task; done: () => void }) {
+  const { draft, latest, change, flush } = useDraft(epic);
+  return (
+    <input
+      className="epic-name"
+      style={epicStyle(epic)}
+      autoFocus
+      aria-label="Epic name"
+      placeholder="Epic name"
+      size={Math.max(draft.title.length + 1, 8)}
+      value={draft.title}
+      onChange={(e) => change('title', e.target.value)}
+      onKeyDown={(e) => {
+        if (
+          !e.nativeEvent.isComposing &&
+          (e.key === 'Enter' || e.key === 'Escape')
+        ) {
+          e.preventDefault();
+          e.currentTarget.blur();
+        }
+      }}
+      onBlur={() => {
+        flush();
+        if (!latest.current.title.trim())
+          void store.update(epic.id, { title: 'New Epic' });
+        done();
+      }}
+    />
+  );
+}

@@ -10,8 +10,8 @@ import { phoneQuery } from './usePhone';
 
 // The to-do being edited. Closing the editor deletes a to-do left without a
 // title and returns focus to the add button; `then` receives the closed
-// to-do's id. On desktop, a press outside the editor, footer and popovers
-// (such as the list picker the editor opens) closes it.
+// to-do's id. On desktop, a press outside the editor, footer, popovers and
+// menus (such as the list and epic pickers the editor opens) closes it.
 export function useEditor() {
   const [editing, setEditing] = useState<string | null>(null);
   const editorArea = useRef<HTMLLIElement>(null);
@@ -41,7 +41,10 @@ export function useEditor() {
         e.target instanceof Node &&
         !editorArea.current?.contains(e.target) &&
         !footer.current?.contains(e.target) &&
-        !(e.target instanceof Element && e.target.closest('.popover'))
+        !(
+          e.target instanceof Element &&
+          e.target.closest('.popover, .context-menu')
+        )
       )
         close.current();
     };

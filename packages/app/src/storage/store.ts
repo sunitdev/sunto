@@ -74,10 +74,15 @@ export const setTrashed = (id: string, trashed: boolean) =>
       ? { trashed, trashedAt: Date.now() }
       : { trashed, trashedAt: 0, deletedFrom: '' },
   );
-const newTask = (list: string, section: string): Partial<Fields> => ({
+const newTask = (
+  list: string,
+  section: string,
+  epic = '',
+): Partial<Fields> => ({
   kind: 'task',
   list,
   section,
+  epic,
   title: '',
   notes: '',
   completed: false,
@@ -102,7 +107,7 @@ export function setCompleted(id: string, completed: boolean) {
     [
       crypto.randomUUID(),
       {
-        ...newTask(task.list, task.section),
+        ...newTask(task.list, task.section, task.epic),
         title: task.title,
         notes: task.notes,
         date: nextDate(task.date, rule),
@@ -168,7 +173,42 @@ export async function addList(kind: 'project' | 'area' | 'section', list = '') {
   return id;
 }
 export const move = (id: string, list: string) =>
-  update(id, { list, section: '' });
+  update(id, { list, section: '', epic: '' });
+// The epic colours, in the order new epics take them.
+export const epicColors = [
+  '#EF4444',
+  '#F59E0B',
+  '#10B981',
+  '#0EA5E9',
+  '#8B5CF6',
+  '#EC4899',
+];
+// A new, untitled epic of `project`, taking the next colour in turn.
+export async function addEpic(project: string) {
+  const count = Object.values(state.tasks).filter(
+    (t) => t.kind === 'epic' && t.list === project && !t.deleted,
+  ).length;
+  const id = crypto.randomUUID();
+  await update(id, {
+    kind: 'epic',
+    list: project,
+    color: epicColors[count % epicColors.length],
+    title: '',
+    deleted: false,
+    created: Date.now(),
+  });
+  return id;
+}
+// The epic's to-dos stay in its project, outside any epic.
+export function deleteEpic(id: string) {
+  const tasks = Object.values(state.tasks).filter(
+    (t) => t.kind === 'task' && t.epic === id && !t.deleted,
+  );
+  return updateAll([
+    ...tasks.map((t): [string, Partial<Fields>] => [t.id, { epic: '' }]),
+    [id, { deleted: true }],
+  ]);
+}
 // The section's to-dos stay in its project, outside any section.
 export function deleteSection(id: string) {
   const tasks = Object.values(state.tasks).filter(
@@ -179,7 +219,7 @@ export function deleteSection(id: string) {
     [id, { deleted: true }],
   ]);
 }
-// The project and its sections can't be restored; its to-dos move to Trash
+// The project, its sections and its epics can't be restored; its to-dos move to Trash
 // and Put Back returns them to the Inbox, remembering the project's name
 // meanwhile.
 export function deleteProject(id: string) {
@@ -196,6 +236,7 @@ export function deleteProject(id: string) {
         ? {
             list: '',
             section: '',
+            epic: '',
             deletedFrom: project.title || 'New Project',
             trashed: true,
             trashedAt: t.trashed ? t.trashedAt : now,

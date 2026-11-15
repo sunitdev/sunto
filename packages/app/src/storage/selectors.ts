@@ -7,8 +7,8 @@ export const completedTime = (t: Task) => t.completedAt || t.created;
 const oldestFirst = (a: Task, b: Task) =>
   a.created - b.created || a.id.localeCompare(b.id);
 
-// The live areas, projects, sections and to-dos, and how they belong to each
-// other.
+// The live areas, projects, sections, epics and to-dos, and how they belong
+// to each other.
 export function organize(state: State) {
   const live = Object.values(state.tasks).filter((t) => !t.deleted);
   const areas = live.filter((t) => t.kind === 'area').sort(oldestFirst);
@@ -23,6 +23,14 @@ export function organize(state: State) {
   // A project's sections, in the order they were added.
   const sectionsOf = (project: string) =>
     sections.filter((s) => s.list === project);
+  const epics = live.filter((t) => t.kind === 'epic').sort(oldestFirst);
+  // A project's epics, in the order they were added.
+  const epicsOf = (project: string) => epics.filter((e) => e.list === project);
+  // A to-do's epic, if it is still one of its project's.
+  const epicOf = (t: Task) =>
+    t.epic
+      ? epics.find((e) => e.id === t.epic && e.list === t.list)
+      : undefined;
   // To-dos whose project was deleted on another device fall back to the Inbox.
   const listOf = (t: Task) => (lists[t.list] ? t.list : '');
   const areaOf = (p: Task) => (lists[p.list]?.kind === 'area' ? p.list : '');
@@ -50,6 +58,8 @@ export function organize(state: State) {
     lists,
     todos,
     sectionsOf,
+    epicsOf,
+    epicOf,
     listOf,
     areaOf,
     progress,
@@ -78,7 +88,8 @@ export function dayPlan({ todos }: Library, today: string) {
 export type Day = ReturnType<typeof dayPlan>;
 
 // The to-dos `view` shows, in display order. `list` is the open project or
-// area ('' for the Inbox), and `today` the current day. The to-do being
+// area ('' for the Inbox), `epic` the project's epic to show alone ('' for
+// all), and `today` the current day. The to-do being
 // edited stays visible, and so does one just completed while it lingers; the
 // phone keeps completed to-dos in the Inbox, and the goal keeps them all.
 export function visibleTasks(
@@ -86,13 +97,14 @@ export function visibleTasks(
   view: View,
   options: {
     list: string;
+    epic?: string;
     today: string;
     editing: string | null;
     lingering: Record<string, true>;
     phone: boolean;
   },
 ) {
-  const { list, today, editing, lingering, phone } = options;
+  const { list, epic, today, editing, lingering, phone } = options;
   const open = (t: Task) => !t.completed || lingering[t.id];
   const shows = (t: Task) =>
     view === 'logbook'
@@ -101,7 +113,9 @@ export function visibleTasks(
         ? !!t.date && t.date <= today && open(t)
         : view === 'goal'
           ? t.planned === today
-          : listOf(t) === list && (phone || open(t));
+          : listOf(t) === list &&
+            (phone || open(t)) &&
+            (!epic || t.epic === epic);
   return todos
     .filter((t) =>
       view === 'trash'

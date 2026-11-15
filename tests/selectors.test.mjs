@@ -22,8 +22,10 @@ const record = (id, fields = {}) => ({
   kind: 'task',
   list: '',
   section: '',
+  epic: '',
   kanban: false,
   icon: '',
+  color: '',
   deletedFrom: '',
   date: '',
   repeat: '',
@@ -154,6 +156,45 @@ test('the Logbook groups by completion day; other views have one group', () => {
     ['inbox'],
   );
   assert.deepEqual(groupTasks([], 'inbox'), []);
+});
+test('epics belong to their project, and a project can show one epic alone', () => {
+  const lib = library(
+    record('p', { kind: 'project' }),
+    record('q', { kind: 'project' }),
+    record('later', { kind: 'epic', list: 'p', created: 2 }),
+    record('first', { kind: 'epic', list: 'p', created: 1 }),
+    record('other', { kind: 'epic', list: 'q' }),
+    record('gone', { kind: 'epic', list: 'p', deleted: true }),
+    record('a', { list: 'p', epic: 'first', created: 3 }),
+    record('b', { list: 'p', epic: 'later', created: 2 }),
+    record('stale', { list: 'p', epic: 'gone', created: 1 }),
+    record('moved', { list: 'q', epic: 'first' }),
+  );
+  assert.deepEqual(
+    lib.epicsOf('p').map((e) => e.id),
+    ['first', 'later'],
+  );
+  assert.equal(
+    lib.epicOf(record('x', { list: 'p', epic: 'first' })).id,
+    'first',
+  );
+  assert.equal(lib.epicOf(record('x', { list: 'p', epic: 'gone' })), undefined);
+  assert.equal(
+    lib.epicOf(record('x', { list: 'q', epic: 'first' })),
+    undefined,
+  );
+  assert.deepEqual(lib.todos.map((t) => t.id).sort(), [
+    'a',
+    'b',
+    'moved',
+    'stale',
+  ]);
+  assert.deepEqual(show(lib, 'p', { list: 'p' }), ['a', 'b', 'stale']);
+  assert.deepEqual(show(lib, 'p', { list: 'p', epic: 'first' }), ['a']);
+  assert.deepEqual(show(lib, 'p', { list: 'p', epic: 'first', editing: 'b' }), [
+    'a',
+    'b',
+  ]);
 });
 test('sections belong to their project in the order they were added', () => {
   const lib = library(

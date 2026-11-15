@@ -29,6 +29,7 @@ import { Board } from './components/Board';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { ContextMenu } from './components/ContextMenu';
 import { DatePopover } from './components/DatePopover';
+import { EpicBar } from './components/EpicBar';
 import { Footer } from './components/Footer';
 import { GoalCard, Planner, PlanPrompt } from './components/Goal';
 import { InboxIcon, ViewIcon } from './components/icons';
@@ -54,26 +55,32 @@ export function App() {
   );
   const [settings, setSettings] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  // The edited to-do's list and date pickers, and the bounds of the button
-  // opening each.
+  // The edited to-do's list, date and epic pickers, and the bounds of the
+  // button opening each.
   const [moving, setMoving] = useState<DOMRect | null>(null);
   const [dating, setDating] = useState<DOMRect | null>(null);
+  const [picking, setPicking] = useState<DOMRect | null>(null);
   const closeMenu = useCallback(() => setMenu(null), []);
   const closeMove = useCallback(() => setMoving(null), []);
   const closeDate = useCallback(() => setDating(null), []);
+  const closeEpic = useCallback(() => setPicking(null), []);
   // The pickers close with the editor, so they can't reopen with the next one.
   const [movingFor, setMovingFor] = useState(editing);
   if (movingFor !== editing) {
     setMovingFor(editing);
     setMoving(null);
     setDating(null);
+    setPicking(null);
   }
+  // The epic each project shows alone, if any.
+  const [epicFilter, setEpicFilter] = useState<Record<string, string>>({});
   // The to-dos picked while planning the day, before they are saved.
   const [planning, setPlanning] = useState<string[] | null>(null);
   const [target, setTarget] = useDailyTarget();
   const today = dayKey();
   const library = organize(state);
-  const { projects, lists, todos, sectionsOf, areaOf, progress } = library;
+  const { projects, lists, todos, sectionsOf, epicsOf, areaOf, progress } =
+    library;
   const day = dayPlan(library, today);
   // The phone layout has no navigation, so it always shows the Inbox.
   const view: View =
@@ -81,14 +88,19 @@ export function App() {
       ? 'inbox'
       : selectedView;
   const openList = isStatic(view) ? undefined : lists[view];
+  const project = openList?.kind === 'project' ? openList : undefined;
+  const epic =
+    project && epicsOf(project.id).some((e) => e.id === epicFilter[project.id])
+      ? epicFilter[project.id]
+      : '';
   const tasks = visibleTasks(library, view, {
     list: openList?.id ?? '',
+    epic,
     today,
     editing,
     lingering,
     phone,
   });
-  const project = openList?.kind === 'project' ? openList : undefined;
   // Today's Goal shows its to-dos once the day is planned.
   const planned = view === 'goal' && !planning && day.goal.length > 0;
   const groups = (
@@ -161,6 +173,7 @@ export function App() {
   async function addTask(section = '') {
     // New to-dos join the open project or area; elsewhere they go to the
     // Inbox. In Today they are due today, and in the goal they also join it.
+    // In a project showing one epic, they join that epic.
     if (editing) closeEditor();
     const dated = view === 'today' || view === 'goal';
     if (!openList && !dated) setSelectedView('inbox');
@@ -168,7 +181,7 @@ export function App() {
     const id = await store.add(
       openList?.id,
       section,
-      dated ? { date: today, planned: view === 'goal' ? today : '' } : {},
+      dated ? { date: today, planned: view === 'goal' ? today : '' } : { epic },
     );
     if (store.getSnapshot().state.tasks[id]) setEditing(id);
   }
@@ -184,6 +197,16 @@ export function App() {
   function finishPlanning() {
     if (planning) void store.setPlan(today, planning);
     setPlanning(null);
+  }
+  function filterEpic(next: string) {
+    if (!project) return;
+    if (editing) closeEditor();
+    setEpicFilter({ ...epicFilter, [project.id]: next });
+  }
+  async function newEpic(task: Task) {
+    const id = await store.addEpic(task.list);
+    if (store.getSnapshot().state.tasks[id])
+      void store.update(task.id, { epic: id });
   }
   function moveTo(list: string) {
     setMoving(null);
@@ -234,6 +257,7 @@ export function App() {
     },
     onMove: (_task: Task, anchor: DOMRect) => setMoving(anchor),
     onDate: (_task: Task, anchor: DOMRect) => setDating(anchor),
+    onEpic: (_task: Task, anchor: DOMRect) => setPicking(anchor),
   };
   const settingsToggle = (
     <button
@@ -274,6 +298,14 @@ export function App() {
             <h1>{titles[view as StaticView]}</h1>
             {settingsToggle}
           </header>
+        )}
+        {project && (
+          <EpicBar
+            project={project}
+            library={library}
+            filter={epic}
+            setFilter={filterEpic}
+          />
         )}
         {error && (
           <div className="save-error" role="alert">
@@ -392,6 +424,29 @@ export function App() {
           today={today}
           anchor={dating}
           close={closeDate}
+        />
+      )}
+      {picking && movingTask && (
+        <ContextMenu
+          x={picking.left}
+          y={picking.bottom + 4}
+          close={closeEpic}
+          items={[
+            { heading: 'Epic' },
+            {
+              label: 'No Epic',
+              checked: !library.epicOf(movingTask),
+              action: () => void store.update(movingTask.id, { epic: '' }),
+            },
+            ...epicsOf(movingTask.list).map((e) => ({
+              label: e.title || 'New Epic',
+              dot: e.color,
+              checked: movingTask.epic === e.id,
+              action: () => void store.update(movingTask.id, { epic: e.id }),
+            })),
+            'divider',
+            { label: 'New Epic…', action: () => void newEpic(movingTask) },
+          ]}
         />
       )}
       {menuTask && (
