@@ -98,3 +98,46 @@ test('trash purges to-dos trashed more than three months ago', async () => {
   assert.equal(tasks[kept].deleted, false);
   assert.equal(JSON.parse(saved).tasks[old].deleted, true);
 });
+test('deleting a project trashes its to-dos, and Put Back returns them to the Inbox', async () => {
+  let saved;
+  globalThis.suntoTestRequest = async (command, data) => {
+    if (command === 'save') saved = data;
+    return command === 'load' ? { data: saved } : {};
+  };
+  const driverURL = compile(
+    'export const native = false; export const request = (command, data) => globalThis.suntoTestRequest(command, data);',
+  );
+  const source = readFileSync(
+    new URL('../packages/app/src/storage/store.ts', import.meta.url),
+    'utf8',
+  )
+    .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
+    .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL));
+  const store = await import(compile(source + '\n// project test instance'));
+  await store.start();
+  const project = await store.addList('project');
+  await store.update(project, { title: 'Trip' });
+  const open = await store.add(project);
+  const trashed = await store.add(project);
+  const blank = await store.add(project);
+  const inbox = await store.add();
+  await store.update(open, { title: 'Book flights' });
+  await store.update(trashed, {
+    title: 'Old idea',
+    trashed: true,
+    trashedAt: 5,
+  });
+  await store.deleteProject(project);
+  let { tasks } = store.getSnapshot().state;
+  assert.equal(tasks[project].deleted, true);
+  assert.equal(tasks[open].trashed, true);
+  assert.equal(tasks[open].list, '');
+  assert.equal(tasks[open].deletedFrom, 'Trip');
+  assert.equal(tasks[trashed].trashedAt, 5);
+  assert.equal(tasks[blank].deleted, true);
+  assert.equal(tasks[inbox].trashed, false);
+  await store.setTrashed(open, false);
+  ({ tasks } = store.getSnapshot().state);
+  assert.equal(tasks[open].trashed, false);
+  assert.equal(tasks[open].deletedFrom, '');
+});

@@ -5,7 +5,7 @@ export interface NativeStorage {
 }
 declare global {
   interface Window {
-    sunto?: NativeStorage & { platform: 'macos' };
+    sunto?: NativeStorage & { platform: 'macos'; showEmojiPanel(): void };
   }
 }
 const ios = registerPlugin<NativeStorage>('SuntoStorage');

@@ -6,20 +6,30 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type DragEvent,
+  type ReactNode,
+  type RefObject,
 } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as store from './storage/store';
 import { native } from './storage/driver';
 import type { Task } from './storage/model';
+import { canShowEmojiPanel, showEmojiPanel } from './platform';
 import './styles.css';
 
-type View = 'inbox' | 'logbook' | 'trash';
-const titles: Record<View, string> = {
+type StaticView = 'inbox' | 'logbook' | 'trash';
+// Any other view is the id of a project or area.
+type View = StaticView | (string & {});
+const titles: Record<StaticView, string> = {
   inbox: 'Inbox',
   logbook: 'Logbook',
   trash: 'Trash',
 };
-const empties: Record<View, string> = {
+const isStatic = (view: View): view is StaticView =>
+  Object.hasOwn(titles, view);
+const untitled = (list: Task) =>
+  list.kind === 'area' ? 'New Area' : 'New Project';
+const empties: Record<StaticView, string> = {
   inbox: 'Inbox is empty',
   logbook: 'Completed to-dos will appear here',
   trash: 'Trash is empty',
@@ -118,11 +128,129 @@ function TrashIcon() {
     </svg>
   );
 }
-const viewIcons: Record<View, typeof InboxIcon> = {
+const viewIcons: Record<StaticView, typeof InboxIcon> = {
   inbox: InboxIcon,
   logbook: LogbookIcon,
   trash: TrashIcon,
 };
+// A pie filled by the share of the project's to-dos that are completed.
+function piePath(progress: number) {
+  if (progress <= 0) return '';
+  if (progress >= 1)
+    return 'M12 6.8a5.2 5.2 0 1 1 0 10.4a5.2 5.2 0 1 1 0-10.4z';
+  const a = progress * 2 * Math.PI;
+  const x = (12 + 5.2 * Math.sin(a)).toFixed(2);
+  const y = (12 - 5.2 * Math.cos(a)).toFixed(2);
+  return `M12 12L12 6.8A5.2 5.2 0 ${progress > 0.5 ? 1 : 0} 1 ${x} ${y}Z`;
+}
+function ProjectIcon({ progress }: { progress: number }) {
+  return (
+    <svg
+      className="view-icon project-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="8.2" stroke="currentColor" strokeWidth="1.8" />
+      <path d={piePath(progress)} fill="currentColor" />
+    </svg>
+  );
+}
+function AreaIcon() {
+  return (
+    <svg
+      className="view-icon area-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
+      <path d="M4 7.5l8 4.5 8-4.5M12 12v9" />
+    </svg>
+  );
+}
+function ListIcon({ list, progress }: { list: Task; progress: number }) {
+  if (list.icon)
+    return (
+      <span className="view-icon emoji-icon" aria-hidden="true">
+        {list.icon}
+      </span>
+    );
+  return list.kind === 'area' ? (
+    <AreaIcon />
+  ) : (
+    <ProjectIcon progress={progress} />
+  );
+}
+// Closes a popover on Escape or a pointer press outside `ref`.
+function useDismiss(
+  ref: RefObject<HTMLElement | null>,
+  open: boolean,
+  close: () => void,
+) {
+  useEffect(() => {
+    if (!open) return;
+    const outside = (e: Event) => {
+      if (!(e.target instanceof Node && ref.current?.contains(e.target)))
+        close();
+    };
+    const escape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.isComposing) {
+        e.preventDefault();
+        close();
+      }
+    };
+    document.addEventListener('pointerdown', outside, true);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', outside, true);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [ref, open, close]);
+}
+// Title and notes edits are saved after a pause, and flushed on unmount or
+// when the page is hidden.
+function useDraft(task: Task) {
+  const [draft, setDraft] = useState({ title: task.title, notes: task.notes });
+  const latest = useRef(draft);
+  const saved = useRef(draft);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const flush = useRef(() => {});
+  useLayoutEffect(() => {
+    flush.current = () => {
+      clearTimeout(timer.current);
+      const patch: { title?: string; notes?: string } = {};
+      if (latest.current.title !== saved.current.title)
+        patch.title = latest.current.title;
+      if (latest.current.notes !== saved.current.notes)
+        patch.notes = latest.current.notes;
+      if (Object.keys(patch).length) {
+        saved.current = latest.current;
+        void store.update(task.id, patch);
+      }
+    };
+  }, [task.id]);
+  useEffect(() => {
+    const save = () => flush.current();
+    window.addEventListener('pagehide', save);
+    document.addEventListener('visibilitychange', save);
+    return () => {
+      save();
+      window.removeEventListener('pagehide', save);
+      document.removeEventListener('visibilitychange', save);
+    };
+  }, []);
+  function change(key: 'title' | 'notes', value: string) {
+    latest.current = { ...latest.current, [key]: value };
+    setDraft(latest.current);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => flush.current(), 250);
+  }
+  return { draft, latest, change, flush: () => flush.current() };
+}
 function ToolbarIcon({ d }: { d: string }) {
   return (
     <svg
@@ -192,46 +320,11 @@ function Editor({
   close: () => void;
   onToggle: (task: Task) => void;
 }) {
-  const [title, setTitle] = useState(task.title);
-  const [notes, setNotes] = useState(task.notes);
-  const draft = useRef({ title, notes });
-  const saved = useRef({ title: task.title, notes: task.notes });
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const flush = useRef(() => {});
-  useLayoutEffect(() => {
-    flush.current = () => {
-      clearTimeout(timer.current);
-      const patch: { title?: string; notes?: string } = {};
-      if (draft.current.title !== saved.current.title)
-        patch.title = draft.current.title;
-      if (draft.current.notes !== saved.current.notes)
-        patch.notes = draft.current.notes;
-      if (Object.keys(patch).length) {
-        saved.current = { ...draft.current };
-        void store.update(task.id, patch);
-      }
-    };
-  }, [task.id]);
-  useEffect(() => {
-    const save = () => flush.current();
-    window.addEventListener('pagehide', save);
-    document.addEventListener('visibilitychange', save);
-    return () => {
-      save();
-      window.removeEventListener('pagehide', save);
-      document.removeEventListener('visibilitychange', save);
-    };
-  }, []);
-  function change(key: 'title' | 'notes', value: string) {
-    draft.current[key] = value;
-    if (key === 'title') setTitle(value);
-    else setNotes(value);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => flush.current(), 250);
-  }
+  const { draft, latest, change, flush } = useDraft(task);
+  const { title, notes } = draft;
   function done() {
-    flush.current();
-    if (!draft.current.title.trim())
+    flush();
+    if (!latest.current.title.trim())
       void store.update(task.id, { deleted: true });
     close();
   }
@@ -293,16 +386,10 @@ function ContextMenu({
     el.style.top = `${Math.max(4, Math.min(y, innerHeight - height - 4))}px`;
     el.querySelector('button')?.focus();
   }, [x, y]);
+  useDismiss(menu, true, close);
   useEffect(() => {
-    const outside = (e: Event) => {
-      if (!(e.target instanceof Node && menu.current?.contains(e.target)))
-        close();
-    };
     const keys = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        close();
-      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
         const buttons = [...menu.current!.querySelectorAll('button')];
         const i = buttons.indexOf(document.activeElement as HTMLButtonElement);
@@ -310,13 +397,11 @@ function ContextMenu({
         buttons[(i + step + buttons.length) % buttons.length].focus();
       }
     };
-    document.addEventListener('pointerdown', outside, true);
     document.addEventListener('scroll', close, true);
     document.addEventListener('keydown', keys);
     window.addEventListener('blur', close);
     window.addEventListener('resize', close);
     return () => {
-      document.removeEventListener('pointerdown', outside, true);
       document.removeEventListener('scroll', close, true);
       document.removeEventListener('keydown', keys);
       window.removeEventListener('blur', close);
@@ -340,6 +425,207 @@ function ContextMenu({
     </div>
   );
 }
+// The last emoji in `value`, including flags, keycaps and skin tones.
+function lastEmoji(value: string) {
+  const segments = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+  return [...segments.segment(value)]
+    .map((s) => s.segment)
+    .filter((g) =>
+      /\p{Extended_Pictographic}|\p{Regional_Indicator}|\u20e3/u.test(g),
+    )
+    .at(-1);
+}
+function ListHeader({
+  list,
+  progress,
+  children,
+}: {
+  list: Task;
+  progress: number;
+  children: ReactNode;
+}) {
+  const { draft, change } = useDraft(list);
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const closeMenu = useCallback(() => setMenu(null), []);
+  const button = useRef<HTMLButtonElement>(null);
+  const emojiField = useRef<HTMLInputElement>(null);
+  function setIcon(icon: string) {
+    if (icon !== list.icon) void store.update(list.id, { icon });
+  }
+  return (
+    <>
+      <header className="inbox-header list-header">
+        <div className="icon-anchor">
+          <button
+            ref={button}
+            className="icon-button"
+            aria-label="Change icon"
+            title={
+              canShowEmojiPanel
+                ? 'Change icon'
+                : 'Change icon (press Control-Command-Space)'
+            }
+            onClick={() => {
+              emojiField.current?.focus();
+              showEmojiPanel();
+            }}
+            onContextMenu={(e) => {
+              if (!list.icon) return;
+              e.preventDefault();
+              setMenu({ x: e.clientX, y: e.clientY });
+            }}
+          >
+            <ListIcon list={list} progress={progress} />
+          </button>
+          {/* The system emoji picker types into this field, which sits over
+              the icon so the picker opens beside it. Moving focus away as
+              the emoji arrived left the picker open, so the field keeps
+              focus and its text until it is focused again. */}
+          <input
+            ref={emojiField}
+            className="emoji-field"
+            tabIndex={-1}
+            aria-label="Icon emoji"
+            onFocus={(e) => (e.currentTarget.value = '')}
+            onChange={(e) => {
+              const emoji = lastEmoji(e.target.value);
+              if (emoji) setIcon(emoji);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Backspace' || e.key === 'Delete') {
+                e.preventDefault();
+                setIcon('');
+              } else if (e.key === 'Escape' || e.key === 'Enter')
+                button.current?.focus();
+            }}
+          />
+        </div>
+        <input
+          className="list-title"
+          // A new list starts untitled, ready to be named.
+          autoFocus={!list.title}
+          aria-label={list.kind === 'area' ? 'Area name' : 'Project name'}
+          placeholder={untitled(list)}
+          value={draft.title}
+          onChange={(e) => change('title', e.target.value)}
+        />
+        {children}
+      </header>
+      <textarea
+        className="list-notes"
+        aria-label="Description"
+        placeholder="Notes"
+        rows={2}
+        value={draft.notes}
+        onChange={(e) => change('notes', e.target.value)}
+      />
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          close={closeMenu}
+          items={[{ label: 'Remove Icon', action: () => setIcon('') }]}
+        />
+      )}
+    </>
+  );
+}
+function NewListMenu({
+  create,
+}: {
+  create: (kind: 'project' | 'area') => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
+  const root = useRef<HTMLDivElement>(null);
+  useDismiss(root, open, close);
+  function choose(kind: 'project' | 'area') {
+    close();
+    create(kind);
+  }
+  return (
+    <div className="sidebar-footer" ref={root}>
+      <button
+        className="new-list"
+        aria-haspopup="true"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        <Plus />
+        New List
+      </button>
+      {open && (
+        <div className="popover new-list-menu">
+          <button onClick={() => choose('project')}>
+            <ProjectIcon progress={0.75} />
+            <span>
+              <strong>New Project</strong>
+              <span>A goal you work towards one to-do at a time.</span>
+            </span>
+          </button>
+          <div className="popover-rule" />
+          <button onClick={() => choose('area')}>
+            <AreaIcon />
+            <span>
+              <strong>New Area</strong>
+              <span>
+                Group projects and to-dos by responsibility, like Family or
+                Work.
+              </span>
+            </span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+function ConfirmDialog({
+  title,
+  body,
+  action,
+  confirm,
+  cancel,
+}: {
+  title: string;
+  body: string;
+  action: string;
+  confirm: () => void;
+  cancel: () => void;
+}) {
+  return (
+    <div
+      className="dialog-scrim"
+      onPointerDown={(e) => {
+        if (e.target === e.currentTarget) cancel();
+      }}
+    >
+      <div
+        className="dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="dialog-title"
+        aria-describedby="dialog-body"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            cancel();
+          }
+        }}
+      >
+        <h2 id="dialog-title">{title}</h2>
+        <p id="dialog-body">{body}</p>
+        <div className="dialog-actions">
+          <button autoFocus onClick={cancel}>
+            Cancel
+          </button>
+          <button className="danger-button" onClick={confirm}>
+            {action}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 function App() {
   const { state, ready, error, syncStatus, folder } = useSyncExternalStore(
     store.subscribe,
@@ -354,16 +640,46 @@ function App() {
     null,
   );
   const [settings, setSettings] = useState(false);
+  // The project being dragged in the sidebar, and the area it would join
+  // ('' for none).
+  const [drag, setDrag] = useState<string | null>(null);
+  const [drop, setDrop] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const closeMenu = useCallback(() => setMenu(null), []);
   const onKey = useRef((e: KeyboardEvent) => void e);
   const addButton = useRef<HTMLButtonElement>(null);
   const footer = useRef<HTMLElement>(null);
   const editorArea = useRef<HTMLLIElement>(null);
   const closeEditor = useRef<(then?: (id: string) => void) => void>(() => {});
-  // The phone layout has no navigation, so it always shows the Inbox.
-  const view: View = phone ? 'inbox' : selectedView;
   const live = Object.values(state.tasks).filter((t) => !t.deleted);
-  const tasks = live
+  const areas = live
+    .filter((t) => t.kind === 'area')
+    .sort((a, b) => a.created - b.created || a.id.localeCompare(b.id));
+  const projects = live
+    .filter((t) => t.kind === 'project')
+    .sort((a, b) => b.created - a.created || a.id.localeCompare(b.id));
+  const lists = Object.fromEntries(
+    [...areas, ...projects].map((l) => [l.id, l]),
+  );
+  const todos = live.filter((t) => t.kind === 'task');
+  // To-dos whose project was deleted on another device fall back to the Inbox.
+  const listOf = (t: Task) => (lists[t.list] ? t.list : '');
+  const areaOf = (p: Task) => (lists[p.list]?.kind === 'area' ? p.list : '');
+  const listName = (t: Task) => {
+    const list = lists[t.list];
+    return list ? list.title || untitled(list) : t.deletedFrom;
+  };
+  function progress(id: string) {
+    const all = todos.filter((t) => t.list === id && !t.trashed);
+    return all.length ? all.filter((t) => t.completed).length / all.length : 0;
+  }
+  // The phone layout has no navigation, so it always shows the Inbox.
+  const view: View =
+    phone || !(isStatic(selectedView) || lists[selectedView])
+      ? 'inbox'
+      : selectedView;
+  const openList = isStatic(view) ? undefined : lists[view];
+  const tasks = todos
     .filter((t) =>
       view === 'trash'
         ? t.trashed
@@ -371,14 +687,15 @@ function App() {
           (t.id === editing ||
             (view === 'logbook'
               ? t.completed && !lingering[t.id]
-              : phone || !t.completed || lingering[t.id])),
+              : listOf(t) === (openList?.id ?? '') &&
+                (phone || !t.completed || lingering[t.id]))),
     )
     .sort(
-      view === 'inbox'
-        ? (a, b) => b.created - a.created || a.id.localeCompare(b.id)
-        : view === 'logbook'
-          ? (a, b) => completedTime(b) - completedTime(a)
-          : (a, b) => b.trashedAt - a.trashedAt,
+      view === 'logbook'
+        ? (a, b) => completedTime(b) - completedTime(a)
+        : view === 'trash'
+          ? (a, b) => b.trashedAt - a.trashedAt
+          : (a, b) => b.created - a.created || a.id.localeCompare(b.id),
     );
   const groups: { key: string; label: string; tasks: Task[] }[] = [];
   for (const task of tasks) {
@@ -392,9 +709,11 @@ function App() {
       });
     groups.at(-1)!.tasks.push(task);
   }
-  const count = live.filter(
-    (t) => !t.trashed && !t.completed && t.title.trim(),
+  const count = todos.filter(
+    (t) => !listOf(t) && !t.trashed && !t.completed && t.title.trim(),
   ).length;
+  const looseProjects = projects.filter((p) => !areaOf(p));
+  const dragging = drag ? lists[drag] : undefined;
   useLayoutEffect(() => {
     closeEditor.current = (then) => {
       // Unmount flushes the editor's draft before this cleanup is queued.
@@ -489,7 +808,12 @@ function App() {
     onKey.current = (e) => {
       if (phoneQuery.matches || editing || menu || e.isComposing) return;
       const target = e.target as Element;
-      if (target.closest('input, textarea, .storage-panel')) return;
+      if (
+        target.closest(
+          'input, textarea, .storage-panel, .popover, .dialog, .context-menu',
+        )
+      )
+        return;
       const i = tasks.findIndex((t) => t.id === selected);
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         if (!tasks.length) return;
@@ -525,8 +849,9 @@ function App() {
   function toggle(task: Task) {
     const completed = !task.completed;
     void store.setCompleted(task.id, completed);
-    // Completed to-dos stay briefly in the Inbox before moving to the Logbook.
-    const linger = completed && view === 'inbox' && !task.trashed;
+    // Completed to-dos stay briefly in their list before moving to the Logbook.
+    const linger =
+      completed && (view === 'inbox' || !!openList) && !task.trashed;
     setLinger(task.id, linger);
     if (linger) setTimeout(() => setLinger(task.id, false), 900);
   }
@@ -544,50 +869,166 @@ function App() {
     setSelectedView(next);
   }
   async function addTask() {
-    setSelectedView('inbox');
-    const id = await store.add();
+    // New to-dos join the open project or area; elsewhere they go to the Inbox.
+    if (!openList) setSelectedView('inbox');
+    const id = await store.add(openList?.id);
     if (store.getSnapshot().state.tasks[id]) setEditing(id);
   }
-  const ViewIcon = viewIcons[view];
+  async function addList(kind: 'project' | 'area') {
+    if (editing) closeEditor.current();
+    setSelected(null);
+    const id = await store.addList(kind);
+    if (store.getSnapshot().state.tasks[id]) setSelectedView(id);
+  }
+  function deleteProject(id: string) {
+    setConfirmDelete(null);
+    if (editing) closeEditor.current();
+    if (selectedView === id) setSelectedView('inbox');
+    void store.deleteProject(id);
+  }
+  function dropZone(area: string) {
+    return {
+      onDragOver: (e: DragEvent) => {
+        if (!drag) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setDrop(area);
+      },
+      onDragLeave: (e: DragEvent) => {
+        if (
+          e.relatedTarget instanceof Node &&
+          e.currentTarget.contains(e.relatedTarget)
+        )
+          return;
+        setDrop((current) => (current === area ? null : current));
+      },
+      onDrop: (e: DragEvent) => {
+        e.preventDefault();
+        if (dragging && areaOf(dragging) !== area)
+          void store.update(dragging.id, { list: area });
+        setDrag(null);
+        setDrop(null);
+      },
+    };
+  }
+  function listButton(list: Task) {
+    const project = list.kind === 'project';
+    return (
+      <button
+        key={list.id}
+        className="sidebar-item"
+        aria-current={view === list.id ? 'page' : undefined}
+        draggable={project}
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', list.title || untitled(list));
+          setDrag(list.id);
+        }}
+        onDragEnd={() => {
+          setDrag(null);
+          setDrop(null);
+        }}
+        onContextMenu={(e) => {
+          if (!project) return;
+          e.preventDefault();
+          setMenu({ id: list.id, x: e.clientX, y: e.clientY });
+        }}
+        onClick={() => showView(list.id)}
+      >
+        <ListIcon list={list} progress={progress(list.id)} />
+        <span className={`sidebar-title${list.title ? '' : ' untitled'}`}>
+          {list.title || untitled(list)}
+        </span>
+      </button>
+    );
+  }
+  const ViewIcon = isStatic(view) ? viewIcons[view] : InboxIcon;
   const menuTask = menu && tasks.find((t) => t.id === menu.id);
+  const menuProject =
+    menu && lists[menu.id]?.kind === 'project' && lists[menu.id];
+  const deleting = confirmDelete ? lists[confirmDelete] : undefined;
+  const deletingCount = deleting
+    ? todos.filter(
+        (t) => t.list === deleting.id && !t.trashed && t.title.trim(),
+      ).length
+    : 0;
+  const areaProjects =
+    openList?.kind === 'area'
+      ? projects.filter((p) => areaOf(p) === openList.id)
+      : [];
+  const settingsToggle = (
+    <button
+      className="settings-toggle"
+      aria-label="Storage settings"
+      onClick={() => setSettings(!settings)}
+    >
+      ···
+    </button>
+  );
   return (
     <div className={`inbox-app${editing ? ' is-editing' : ''}`}>
-      <aside className="sidebar" aria-label="Lists">
-        {(['inbox', 'logbook', 'trash'] as const).map((v) => {
-          const Icon = viewIcons[v];
-          return (
-            <button
-              key={v}
-              className="sidebar-item"
-              aria-current={view === v ? 'page' : undefined}
-              onClick={() => showView(v)}
+      <aside className="sidebar">
+        <nav className="sidebar-nav" aria-label="Lists">
+          {(['inbox', 'logbook', 'trash'] as const).map((v) => {
+            const Icon = viewIcons[v];
+            return (
+              <button
+                key={v}
+                className="sidebar-item"
+                aria-current={view === v ? 'page' : undefined}
+                onClick={() => showView(v)}
+              >
+                <Icon />
+                <span className="sidebar-title">{titles[v]}</span>
+                {v === 'inbox' && count > 0 && (
+                  <span
+                    className="sidebar-count"
+                    aria-label={`${count} incomplete tasks`}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          {/* Dropping a project here takes it out of its area. */}
+          {(looseProjects.length > 0 || (dragging && areaOf(dragging))) && (
+            <div
+              className={`sidebar-group sidebar-loose${drop === '' ? ' is-drop' : ''}`}
+              {...dropZone('')}
             >
-              <Icon />
-              <span className="sidebar-title">{titles[v]}</span>
-              {v === 'inbox' && count > 0 && (
-                <span
-                  className="sidebar-count"
-                  aria-label={`${count} incomplete tasks`}
-                >
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
+              {looseProjects.map(listButton)}
+            </div>
+          )}
+          {areas.map((area) => (
+            <div
+              key={area.id}
+              className={`sidebar-group sidebar-area${drop === area.id ? ' is-drop' : ''}`}
+              {...dropZone(area.id)}
+            >
+              {listButton(area)}
+              {projects.filter((p) => areaOf(p) === area.id).map(listButton)}
+            </div>
+          ))}
+        </nav>
+        <NewListMenu create={(kind) => void addList(kind)} />
       </aside>
-      <main className={`inbox-main view-${view}`}>
-        <header className="inbox-header">
-          <ViewIcon />
-          <h1>{titles[view]}</h1>
-          <button
-            className="settings-toggle"
-            aria-label="Storage settings"
-            onClick={() => setSettings(!settings)}
+      <main className={`inbox-main view-${openList ? 'list' : view}`}>
+        {openList ? (
+          <ListHeader
+            key={openList.id}
+            list={openList}
+            progress={progress(openList.id)}
           >
-            ···
-          </button>
-        </header>
+            {settingsToggle}
+          </ListHeader>
+        ) : (
+          <header className="inbox-header">
+            <ViewIcon />
+            <h1>{titles[view as StaticView]}</h1>
+            {settingsToggle}
+          </header>
+        )}
         {error && (
           <div className="save-error" role="alert">
             {error} <button onClick={() => void store.retry()}>Retry</button>
@@ -624,6 +1065,25 @@ function App() {
           </section>
         )}
         <div className="task-scroll">
+          {areaProjects.length > 0 && (
+            <ul className="area-projects" aria-label="Projects">
+              {areaProjects.map((p) => (
+                <li key={p.id}>
+                  <button
+                    className={p.title ? undefined : 'untitled'}
+                    onClick={() => showView(p.id)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setMenu({ id: p.id, x: e.clientX, y: e.clientY });
+                    }}
+                  >
+                    <ListIcon list={p} progress={progress(p.id)} />
+                    {p.title || untitled(p)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           {view === 'trash' && tasks.length > 0 && (
             <button
               className="empty-trash"
@@ -642,7 +1102,10 @@ function App() {
               {group.label && <h2>{group.label}</h2>}
               <ul
                 className="task-list"
-                aria-label={group.label || `${titles[view]} tasks`}
+                aria-label={
+                  group.label ||
+                  `${openList ? openList.title || untitled(openList) : titles[view as StaticView]} tasks`
+                }
               >
                 {group.tasks.map((task) => (
                   <li
@@ -685,7 +1148,13 @@ function App() {
                             if (!phone) setSelected(task.id);
                           }}
                         >
-                          {task.title || 'New To-Do'}
+                          <span>{task.title || 'New To-Do'}</span>
+                          {(view === 'logbook' || view === 'trash') &&
+                            listName(task) && (
+                              <span className="task-list-name">
+                                {listName(task)}
+                              </span>
+                            )}
                         </button>
                       </div>
                     )}
@@ -694,10 +1163,12 @@ function App() {
               </ul>
             </section>
           ))}
-          {tasks.length === 0 && (
+          {tasks.length === 0 && !openList && (
             <div className="empty-state">
               <InboxIcon empty />
-              <span>{ready ? empties[view] : 'Loading tasks…'}</span>
+              <span>
+                {ready ? empties[view as StaticView] : 'Loading tasks…'}
+              </span>
             </div>
           )}
         </div>
@@ -755,6 +1226,32 @@ function App() {
                 ]
               : [{ label: 'Delete', action: () => remove(menuTask) }]
           }
+        />
+      )}
+      {menuProject && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          close={closeMenu}
+          items={[
+            {
+              label: 'Delete Project…',
+              action: () => setConfirmDelete(menuProject.id),
+            },
+          ]}
+        />
+      )}
+      {deleting && (
+        <ConfirmDialog
+          title={`Delete “${deleting.title || untitled(deleting)}”?`}
+          body={
+            deletingCount === 0
+              ? 'This project has no to-dos. The project can’t be restored.'
+              : `Its ${deletingCount === 1 ? '1 to-do' : `${deletingCount} to-dos`} will be moved to the Trash. The project itself can’t be restored.`
+          }
+          action="Delete Project"
+          confirm={() => deleteProject(deleting.id)}
+          cancel={() => setConfirmDelete(null)}
         />
       )}
     </div>

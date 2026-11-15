@@ -67,7 +67,12 @@ export function updateAll(changes: [string, Partial<Fields>][]) {
 export const update = (id: string, patch: Partial<Fields>) =>
   updateAll([[id, patch]]);
 export const setTrashed = (id: string, trashed: boolean) =>
-  update(id, { trashed, trashedAt: trashed ? Date.now() : 0 });
+  update(
+    id,
+    trashed
+      ? { trashed, trashedAt: Date.now() }
+      : { trashed, trashedAt: 0, deletedFrom: '' },
+  );
 export const setCompleted = (id: string, completed: boolean) =>
   update(id, { completed, completedAt: completed ? Date.now() : 0 });
 // Trashed to-dos are permanently deleted three months after being trashed.
@@ -89,9 +94,11 @@ export function purgeTrash() {
     }
   });
 }
-export async function add() {
+export async function add(list = '') {
   const id = crypto.randomUUID();
   await update(id, {
+    kind: 'task',
+    list,
     title: '',
     notes: '',
     completed: false,
@@ -102,6 +109,43 @@ export async function add() {
     created: Date.now(),
   });
   return id;
+}
+export async function addList(kind: 'project' | 'area') {
+  const id = crypto.randomUUID();
+  await update(id, {
+    kind,
+    list: '',
+    icon: '',
+    title: '',
+    notes: '',
+    deleted: false,
+    created: Date.now(),
+  });
+  return id;
+}
+// The project can't be restored; its to-dos move to Trash and Put Back
+// returns them to the Inbox, remembering the project's name meanwhile.
+export function deleteProject(id: string) {
+  const project = state.tasks[id];
+  if (!project) return Promise.resolve();
+  const now = Date.now();
+  const tasks = Object.values(state.tasks).filter(
+    (t) => t.kind === 'task' && t.list === id && !t.deleted,
+  );
+  return updateAll([
+    ...tasks.map((t): [string, Partial<Fields>] => [
+      t.id,
+      t.title.trim()
+        ? {
+            list: '',
+            deletedFrom: project.title || 'New Project',
+            trashed: true,
+            trashedAt: t.trashed ? t.trashedAt : now,
+          }
+        : { deleted: true },
+    ]),
+    [id, { deleted: true }],
+  ]);
 }
 export function sync() {
   return run(async () => {

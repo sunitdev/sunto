@@ -119,3 +119,28 @@ test('completion and trash fields validate their types and default for older tas
       }),
     );
 });
+test('list fields validate their types and default older records to Inbox to-dos', () => {
+  const legacy = mutate(emptyState(), 'task', { title: 'Old', created: 1 });
+  assert.equal(legacy.tasks.task.kind, 'task');
+  assert.equal(legacy.tasks.task.list, '');
+  const project = mutate(legacy, 'project', { kind: 'project', icon: '🚀' });
+  const moved = mutate(project, 'task', { list: 'project' });
+  assert.equal(moved.tasks.project.kind, 'project');
+  assert.equal(moved.tasks.task.list, 'project');
+  for (const patch of [
+    { kind: 'folder' },
+    { list: null },
+    { icon: 1 },
+    { deletedFrom: false },
+  ])
+    assert.throws(() =>
+      merge(legacy, {
+        version: 1,
+        id: 'id',
+        device: 'd',
+        task: 'task',
+        revision: 9,
+        patch,
+      }),
+    );
+});

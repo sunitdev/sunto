@@ -1,4 +1,11 @@
+// One record type holds to-dos, projects and areas, distinguished by kind.
+// `list` is a to-do's project or area, or a project's area ('' for none).
+export type Kind = 'task' | 'project' | 'area';
 export type Fields = {
+  kind: Kind;
+  list: string;
+  icon: string;
+  deletedFrom: string;
   title: string;
   notes: string;
   completed: boolean;
@@ -35,6 +42,10 @@ export const emptyState = (): State => ({
   changes: {},
 });
 const keys = [
+  'kind',
+  'list',
+  'icon',
+  'deletedFrom',
   'title',
   'notes',
   'completed',
@@ -45,6 +56,8 @@ const keys = [
   'created',
 ];
 const numbers = ['created', 'completedAt', 'trashedAt'];
+const strings = ['kind', 'list', 'icon', 'deletedFrom', 'title', 'notes'];
+const kinds = ['task', 'project', 'area'];
 export function validateChange(value: unknown): Change {
   const c = value as Change;
   if (
@@ -67,8 +80,8 @@ export function validateChange(value: unknown): Change {
       !keys.includes(key) ||
       (numbers.includes(key)
         ? typeof v !== 'number' || !Number.isFinite(v)
-        : typeof v !==
-          (key === 'title' || key === 'notes' ? 'string' : 'boolean'))
+        : typeof v !== (strings.includes(key) ? 'string' : 'boolean')) ||
+      (key === 'kind' && !kinds.includes(v as string))
     )
       throw Error('Invalid task field');
   }
@@ -95,6 +108,10 @@ export function merge(state: State, input: unknown): State {
   const task: Task = structuredClone(
     state.tasks[c.task] ?? {
       id: c.task,
+      kind: 'task',
+      list: '',
+      icon: '',
+      deletedFrom: '',
       title: '',
       notes: '',
       completed: false,
