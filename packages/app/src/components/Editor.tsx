@@ -129,9 +129,6 @@ export function Editor({
           )}
         </div>
       )}
-      <div className="editor-actions">
-        <button onClick={done}>Done</button>
-      </div>
     </div>
   );
 }

@@ -8,16 +8,22 @@ import { EmojiPicker } from './EmojiPicker';
 import { ListIcon, MoreIcon } from './icons';
 
 // A project or area's icon, name and notes. A project also has actions:
-// showing it as a list or a board, adding a section, and deleting it.
+// showing it as a list or a board, adding a section, and deleting it. Given
+// `areas`, as on the phone where projects can't be dragged between areas, they
+// also move it to one of them; `area` is its area ('' for none).
 export function ListHeader({
   list,
   progress,
+  areas,
+  area,
   addSection,
   deleteProject,
   children,
 }: {
   list: Task;
   progress: number;
+  areas?: Task[];
+  area: string;
   addSection: () => void;
   deleteProject: () => void;
   children: ReactNode;
@@ -32,6 +38,9 @@ export function ListHeader({
   }
   function setKanban(kanban: boolean) {
     if (kanban !== list.kanban) void store.update(list.id, { kanban });
+  }
+  function moveTo(next: string) {
+    if (next !== area) void store.update(list.id, { list: next });
   }
   return (
     <>
@@ -105,6 +114,22 @@ export function ListHeader({
             'divider',
             { label: 'Add Section', action: addSection },
             'divider',
+            ...(areas
+              ? [
+                  { heading: 'Area' },
+                  {
+                    label: 'No Area',
+                    checked: !area,
+                    action: () => moveTo(''),
+                  },
+                  ...areas.map((a) => ({
+                    label: a.title || untitled(a),
+                    checked: area === a.id,
+                    action: () => moveTo(a.id),
+                  })),
+                  'divider' as const,
+                ]
+              : []),
             { label: 'Delete Project…', danger: true, action: deleteProject },
           ]}
         />

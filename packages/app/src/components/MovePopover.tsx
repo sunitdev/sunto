@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import type { Task } from '../storage/model';
 import type { Library } from '../storage/selectors';
 import { useDismiss } from '../hooks/useDismiss';
+import { place } from '../hooks/usePhone';
 import { untitled } from '../views';
 import { ListIcon, TrayIcon } from './icons';
 
@@ -55,8 +56,16 @@ export function MovePopover({
     const el = root.current!;
     const { width, height } = el.getBoundingClientRect();
     const above = anchor.top - height - 6;
-    el.style.left = `${Math.max(8, Math.min(anchor.left, innerWidth - width - 8))}px`;
-    el.style.top = `${Math.max(8, above >= 8 ? above : Math.min(anchor.bottom + 6, innerHeight - height - 8))}px`;
+    place(
+      el,
+      Math.max(8, Math.min(anchor.left, innerWidth - width - 8)),
+      Math.max(
+        8,
+        above >= 8
+          ? above
+          : Math.min(anchor.bottom + 6, innerHeight - height - 8),
+      ),
+    );
   });
   const current = listOf(task);
   const currentArea =

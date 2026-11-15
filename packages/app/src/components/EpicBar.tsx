@@ -1,18 +1,20 @@
-import { useCallback, useState } from 'react';
+import { Fragment, useCallback, useState } from 'react';
 import * as store from '../storage/store';
 import type { Task } from '../storage/model';
 import type { Library } from '../storage/selectors';
 import { taskDropTarget } from '../drag';
 import { useDraft } from '../hooks/useDraft';
+import { usePhone } from '../hooks/usePhone';
 import { epicStyle } from '../views';
 import { ContextMenu } from './ContextMenu';
-import { EpicDot, Plus } from './icons';
+import { EpicDot, MoreIcon, Plus } from './icons';
 
 const colorNames = ['Red', 'Orange', 'Green', 'Blue', 'Purple', 'Pink'];
 
 // A project's epics as chips that filter its to-dos to one epic, each with
 // its count of completed to-dos. Double-click renames an epic, right-click
-// sets its colour or deletes it, and dropping a to-do on one assigns it.
+// sets its colour or deletes it, and dropping a to-do on one assigns it. On
+// the phone, a button beside the chosen epic opens the same menu.
 export function EpicBar({
   project,
   library,
@@ -29,6 +31,7 @@ export function EpicBar({
     null,
   );
   const [over, setOver] = useState<string | null>(null);
+  const phone = usePhone();
   const closeMenu = useCallback(() => setMenu(null), []);
   const epics = library.epicsOf(project.id);
   const menuEpic = menu && epics.find((e) => e.id === menu.id);
@@ -51,35 +54,49 @@ export function EpicBar({
         return renaming === epic.id || !epic.title ? (
           <EpicName key={epic.id} epic={epic} done={() => setRenaming(null)} />
         ) : (
-          <button
-            key={epic.id}
-            className={`epic-chip${over === epic.id ? ' is-drop' : ''}`}
-            style={epicStyle(epic)}
-            aria-pressed={on}
-            title="Click to filter. Double-click to rename. Right-click for colour and delete."
-            onClick={() => setFilter(on ? '' : epic.id)}
-            onDoubleClick={() => setRenaming(epic.id)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              setMenu({ id: epic.id, x: e.clientX, y: e.clientY });
-            }}
-            {...taskDropTarget(
-              (hover) =>
-                setOver((current) =>
-                  hover ? epic.id : current === epic.id ? null : current,
-                ),
-              (id) => {
-                if (store.getSnapshot().state.tasks[id]?.list === project.id)
-                  void store.update(id, { epic: epic.id });
-              },
+          <Fragment key={epic.id}>
+            <button
+              className={`epic-chip${over === epic.id ? ' is-drop' : ''}`}
+              style={epicStyle(epic)}
+              aria-pressed={on}
+              title="Click to filter. Double-click to rename. Right-click for colour and delete."
+              onClick={() => setFilter(on ? '' : epic.id)}
+              onDoubleClick={() => setRenaming(epic.id)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setMenu({ id: epic.id, x: e.clientX, y: e.clientY });
+              }}
+              {...taskDropTarget(
+                (hover) =>
+                  setOver((current) =>
+                    hover ? epic.id : current === epic.id ? null : current,
+                  ),
+                (id) => {
+                  if (store.getSnapshot().state.tasks[id]?.list === project.id)
+                    void store.update(id, { epic: epic.id });
+                },
+              )}
+            >
+              <EpicDot color={epic.color} />
+              <span>{epic.title}</span>
+              <span className="epic-progress">
+                {tasks.filter((t) => t.completed).length}/{tasks.length}
+              </span>
+            </button>
+            {phone && on && (
+              <button
+                className="epic-more"
+                aria-label="Epic options"
+                aria-haspopup="true"
+                onClick={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  setMenu({ id: epic.id, x: r.left, y: r.bottom + 4 });
+                }}
+              >
+                <MoreIcon />
+              </button>
             )}
-          >
-            <EpicDot color={epic.color} />
-            <span>{epic.title}</span>
-            <span className="epic-progress">
-              {tasks.filter((t) => t.completed).length}/{tasks.length}
-            </span>
-          </button>
+          </Fragment>
         );
       })}
       <button

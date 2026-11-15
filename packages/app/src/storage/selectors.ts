@@ -91,7 +91,7 @@ export type Day = ReturnType<typeof dayPlan>;
 // area ('' for the Inbox), `epic` the project's epic to show alone ('' for
 // all), and `today` the current day. The to-do being
 // edited stays visible, and so does one just completed while it lingers; the
-// phone keeps completed to-dos in the Inbox, and the goal keeps them all.
+// goal keeps them all.
 export function visibleTasks(
   { todos, listOf }: Library,
   view: View,
@@ -101,10 +101,9 @@ export function visibleTasks(
     today: string;
     editing: string | null;
     lingering: Record<string, true>;
-    phone: boolean;
   },
 ) {
-  const { list, epic, today, editing, lingering, phone } = options;
+  const { list, epic, today, editing, lingering } = options;
   const open = (t: Task) => !t.completed || lingering[t.id];
   const shows = (t: Task) =>
     view === 'logbook'
@@ -113,9 +112,7 @@ export function visibleTasks(
         ? !!t.date && t.date <= today && open(t)
         : view === 'goal'
           ? t.planned === today
-          : listOf(t) === list &&
-            (phone || open(t)) &&
-            (!epic || t.epic === epic);
+          : listOf(t) === list && open(t) && (!epic || t.epic === epic);
   return todos
     .filter((t) =>
       view === 'trash'

@@ -13,6 +13,7 @@ import {
   type Repeat,
 } from '../storage/dates';
 import { useDismiss } from '../hooks/useDismiss';
+import { place } from '../hooks/usePhone';
 import { RepeatIcon } from './icons';
 
 type Preset = Freq | 'weekdays';
@@ -202,8 +203,16 @@ export function DatePopover({
     const el = root.current!;
     const { width, height } = el.getBoundingClientRect();
     const above = anchor.top - height - 6;
-    el.style.left = `${Math.max(8, Math.min(anchor.right - width, innerWidth - width - 8))}px`;
-    el.style.top = `${Math.max(8, above >= 8 ? above : Math.min(anchor.bottom + 6, innerHeight - height - 8))}px`;
+    place(
+      el,
+      Math.max(8, Math.min(anchor.right - width, innerWidth - width - 8)),
+      Math.max(
+        8,
+        above >= 8
+          ? above
+          : Math.min(anchor.bottom + 6, innerHeight - height - 8),
+      ),
+    );
   });
   useEffect(() => root.current?.focus(), []);
   const mode: Mode = !rule

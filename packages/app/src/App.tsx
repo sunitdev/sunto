@@ -32,7 +32,7 @@ import { DatePopover } from './components/DatePopover';
 import { EpicBar } from './components/EpicBar';
 import { Footer } from './components/Footer';
 import { GoalCard, Planner, PlanPrompt } from './components/Goal';
-import { InboxIcon, ViewIcon } from './components/icons';
+import { InboxIcon, ToolbarIcon, ViewIcon } from './components/icons';
 import { ListHeader } from './components/ListHeader';
 import { MovePopover } from './components/MovePopover';
 import { Sidebar } from './components/Sidebar';
@@ -46,6 +46,9 @@ export function App() {
   );
   const phone = usePhone();
   const [selectedView, setSelectedView] = useState<View>('inbox');
+  // The phone shows one screen at a time, starting with its lists.
+  const [home, setHome] = useState(true);
+  const atHome = phone && home;
   const { editing, setEditing, closeEditor, editorArea, footer, addButton } =
     useEditor();
   const [lingering, setLingering] = useState<Record<string, true>>({});
@@ -82,11 +85,8 @@ export function App() {
   const { projects, lists, todos, sectionsOf, epicsOf, areaOf, progress } =
     library;
   const day = dayPlan(library, today);
-  // The phone layout has no navigation, so it always shows the Inbox.
   const view: View =
-    phone || !(isStatic(selectedView) || lists[selectedView])
-      ? 'inbox'
-      : selectedView;
+    isStatic(selectedView) || lists[selectedView] ? selectedView : 'inbox';
   const openList = isStatic(view) ? undefined : lists[view];
   const project = openList?.kind === 'project' ? openList : undefined;
   const epic =
@@ -99,7 +99,6 @@ export function App() {
     today,
     editing,
     lingering,
-    phone,
   });
   // Today's Goal shows its to-dos once the day is planned.
   const planned = view === 'goal' && !planning && day.goal.length > 0;
@@ -169,19 +168,32 @@ export function App() {
     if (editing) closeEditor();
     setSelected(null);
     setSelectedView(next);
+    setHome(false);
+  }
+  function goHome() {
+    if (editing) closeEditor();
+    setSelected(null);
+    setPlanning(null);
+    setHome(true);
   }
   async function addTask(section = '') {
     // New to-dos join the open project or area; elsewhere they go to the
     // Inbox. In Today they are due today, and in the goal they also join it.
-    // In a project showing one epic, they join that epic.
+    // In a project showing one epic, they join that epic. From the phone's
+    // lists, they go to the Inbox.
     if (editing) closeEditor();
-    const dated = view === 'today' || view === 'goal';
-    if (!openList && !dated) setSelectedView('inbox');
-    if (view === 'goal') setPlanning(null);
+    const shown = atHome ? 'inbox' : view;
+    const list = atHome ? undefined : openList;
+    const dated = shown === 'today' || shown === 'goal';
+    if (!list && !dated) setSelectedView('inbox');
+    setHome(false);
+    if (shown === 'goal') setPlanning(null);
     const id = await store.add(
-      openList?.id,
+      list?.id,
       section,
-      dated ? { date: today, planned: view === 'goal' ? today : '' } : { epic },
+      dated
+        ? { date: today, planned: shown === 'goal' ? today : '' }
+        : { epic: list ? epic : '' },
     );
     if (store.getSnapshot().state.tasks[id]) setEditing(id);
   }
@@ -216,12 +228,15 @@ export function App() {
     if (editing) closeEditor();
     setSelected(null);
     const id = await store.addList(kind);
-    if (store.getSnapshot().state.tasks[id]) setSelectedView(id);
+    if (store.getSnapshot().state.tasks[id]) showView(id);
   }
   function deleteProject(id: string) {
     setConfirmDelete(null);
     if (editing) closeEditor();
-    if (selectedView === id) setSelectedView('inbox');
+    if (selectedView === id) {
+      setSelectedView('inbox');
+      setHome(true);
+    }
     void store.deleteProject(id);
   }
   const menuTask = menu && tasks.find((t) => t.id === menu.id);
@@ -269,7 +284,9 @@ export function App() {
     </button>
   );
   return (
-    <div className={`inbox-app${editing ? ' is-editing' : ''}`}>
+    <div
+      className={`inbox-app${editing ? ' is-editing' : ''}${atHome ? ' is-home' : ''}${planning ? ' is-planning' : ''}`}
+    >
       <Sidebar
         library={library}
         day={day}
@@ -282,11 +299,19 @@ export function App() {
       <main
         className={`inbox-main view-${openList ? 'list' : view}${project?.kanban ? ' view-board' : ''}`}
       >
+        {phone && (
+          <button className="back-button" onClick={goHome}>
+            <ToolbarIcon d="M15 5l-7 7 7 7" />
+            Lists
+          </button>
+        )}
         {openList ? (
           <ListHeader
             key={openList.id}
             list={openList}
             progress={progress(openList.id)}
+            areas={phone ? library.areas : undefined}
+            area={areaOf(openList)}
             addSection={addSection}
             deleteProject={() => setConfirmDelete(openList.id)}
           >

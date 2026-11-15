@@ -121,44 +121,34 @@
   position: fixed;
 }
 .emoji-picker {
-  width: 288px;
+  width: 240px;
   padding: 10px;
-}
-.emoji-grid {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 2px;
-}
-.emoji-grid button {
-  height: 32px;
-  border-radius: 6px;
-  font-size: 18px;
-  line-height: 32px;
-}
-.emoji-grid button:hover,
-.emoji-grid button[aria-pressed='true'] {
-  background: var(--sel);
 }
 .emoji-custom {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 10px;
 }
 .emoji-custom input {
   flex: 1;
   min-width: 0;
-  height: 30px;
-  padding: 0 8px;
+  height: 36px;
+  padding: 0 10px;
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
   color: inherit;
-  font-size: 14px;
+  font-size: 20px;
+  caret-color: var(--accent);
+}
+.emoji-custom input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 .emoji-custom input::placeholder {
   color: currentColor;
   opacity: 0.55;
+  font-size: 14px;
 }
 .emoji-custom button {
   height: 30px;
@@ -168,11 +158,11 @@
   font-size: 13px;
   font-weight: 500;
 }
-.emoji-custom .emoji-use {
-  padding: 0 10px;
-  background: var(--accent);
-  color: #fff;
-  font-weight: 600;
+.emoji-hint {
+  margin: 8px 2px 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
 }
 .move-popover {
   width: 260px;
@@ -671,4 +661,38 @@
   color: #fff;
   font-size: 13px;
   font-weight: 600;
+}
+/* On the phone, popovers and menus are sheets along the bottom of a dimmed
+   screen, where a tap closes them. */
+@media (width < 700px) {
+  .inbox-app:has(.popover, .context-menu)::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 15;
+    background: rgb(0 0 0 / 32%);
+  }
+  .inbox-app .popover,
+  .inbox-app .context-menu {
+    position: fixed;
+    inset: auto 8px calc(10px + env(safe-area-inset-bottom));
+    z-index: 20;
+    width: auto;
+    max-height: 80%;
+    overflow-y: auto;
+  }
+  .inbox-app .context-menu {
+    border-radius: 9px;
+    background: var(--pop);
+    border: 1px solid var(--pop-border);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 28%);
+    backdrop-filter: none;
+  }
+  .context-menu button {
+    flex: none;
+    height: 42px;
+    padding-right: 12px;
+    font-size: 15px;
+    line-height: 20px;
+  }
 }

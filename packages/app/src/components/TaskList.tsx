@@ -66,14 +66,10 @@ export function TaskItem({
           epic={epic}
           close={closeEditor}
           onToggle={onToggle}
-          onMove={
-            phone || task.trashed ? undefined : (anchor) => onMove(task, anchor)
-          }
-          onDate={
-            phone || task.trashed ? undefined : (anchor) => onDate(task, anchor)
-          }
+          onMove={task.trashed ? undefined : (anchor) => onMove(task, anchor)}
+          onDate={task.trashed ? undefined : (anchor) => onDate(task, anchor)}
           onEpic={
-            phone || task.trashed || list?.kind !== 'project'
+            task.trashed || list?.kind !== 'project'
               ? undefined
               : (anchor) => onEpic(task, anchor)
           }

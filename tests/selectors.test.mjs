@@ -49,7 +49,6 @@ const show = (lib, view, options = {}) =>
     today: '2026-03-10',
     editing: null,
     lingering: {},
-    phone: false,
     ...options,
   }).map((t) => t.id);
 test('organize sorts areas oldest first and projects newest first, skipping deleted records', () => {
@@ -103,7 +102,7 @@ test('progress and Inbox count ignore trashed to-dos', () => {
   assert.equal(lib.progress('empty'), 0);
   assert.equal(lib.inboxCount, 1);
 });
-test('the Inbox hides completed to-dos unless lingering, edited, or on the phone', () => {
+test('the Inbox hides completed to-dos unless lingering or edited', () => {
   const lib = library(
     record('old', { created: 1 }),
     record('new', { created: 2 }),
@@ -123,7 +122,6 @@ test('the Inbox hides completed to-dos unless lingering, edited, or on the phone
     'new',
     'old',
   ]);
-  assert.deepEqual(show(lib, 'inbox', { phone: true }), ['done', 'new', 'old']);
   assert.deepEqual(show(lib, 'p', { list: 'p' }), ['in-p']);
 });
 test('the Logbook and Trash sort by completion and trash time', () => {

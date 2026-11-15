@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useDismiss } from '../hooks/useDismiss';
+import { place } from '../hooks/usePhone';
 import { EpicDot } from './icons';
 
 // A command, optionally checked as one of a set of choices, styled as
@@ -31,8 +32,11 @@ export function ContextMenu({
     // Keep the menu inside the window, like a native context menu.
     const el = menu.current!;
     const { width, height } = el.getBoundingClientRect();
-    el.style.left = `${Math.max(4, Math.min(x, innerWidth - width - 4))}px`;
-    el.style.top = `${Math.max(4, Math.min(y, innerHeight - height - 4))}px`;
+    place(
+      el,
+      Math.max(4, Math.min(x, innerWidth - width - 4)),
+      Math.max(4, Math.min(y, innerHeight - height - 4)),
+    );
     el.querySelector('button')?.focus();
   }, [x, y]);
   useDismiss(menu, true, close);

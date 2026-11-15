@@ -153,8 +153,88 @@
   font-weight: 600;
   color: var(--fg);
 }
+/* On the phone, the lists are a screen of their own. */
 @media (width < 700px) {
   .sidebar {
     display: none;
+  }
+  .is-home .sidebar {
+    display: flex;
+    flex: 1;
+    width: auto;
+    position: relative;
+    background: var(--bg);
+    border-right: 0;
+  }
+  /* The lists fade out under the New List and add buttons. */
+  .is-home .sidebar::before {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: calc(110px + env(safe-area-inset-bottom));
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent, var(--bg) 60%);
+  }
+  .sidebar-nav {
+    padding: max(62px, calc(env(safe-area-inset-top) + 16px)) 12px
+      calc(140px + env(safe-area-inset-bottom));
+  }
+  .sidebar-item {
+    height: 46px;
+    gap: 14px;
+    padding: 0 12px;
+    border-radius: 11px;
+    cursor: pointer;
+    font-size: 17px;
+    line-height: 22px;
+  }
+  .sidebar-item[aria-current='page'] {
+    background: none;
+  }
+  .sidebar .view-icon {
+    width: 22px;
+    height: 22px;
+  }
+  .sidebar .emoji-icon {
+    font-size: 18px;
+  }
+  .sidebar-count {
+    font-size: 15px;
+    line-height: 20px;
+    font-weight: 500;
+  }
+  .sidebar-nav > .sidebar-break:first-child {
+    margin-bottom: 18px;
+  }
+  .sidebar-loose {
+    min-height: 0;
+  }
+  .sidebar-area {
+    margin-top: 18px;
+  }
+  .sidebar-footer {
+    position: absolute;
+    left: 16px;
+    bottom: calc(40px + env(safe-area-inset-bottom));
+    height: auto;
+    padding: 0;
+    border: 0;
+  }
+  .new-list,
+  .new-list[aria-expanded='true'] {
+    gap: 8px;
+    height: 44px;
+    padding: 0 16px 0 12px;
+    border-radius: 22px;
+    background: var(--sel);
+    color: var(--fg);
+    font-size: 15px;
+    line-height: 20px;
+    font-weight: 600;
+  }
+  .new-list svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2.2;
   }
 }

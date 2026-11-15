@@ -27,6 +27,11 @@ ipcMain.handle('sunto:storage', (event, options) => {
   );
   return job;
 });
+ipcMain.handle('sunto:emoji', (event) => {
+  if (event.senderFrame !== event.sender.mainFrame)
+    throw new Error('Invalid emoji request');
+  app.showEmojiPanel();
+});
 // Matches the renderer's --bg token so resizing never flashes the wrong color.
 const windowBackground = () =>
   nativeTheme.shouldUseDarkColors ? '#2e2e2e' : '#ffffff';

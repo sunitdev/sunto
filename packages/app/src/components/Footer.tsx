@@ -2,9 +2,10 @@ import type { RefObject } from 'react';
 import * as store from '../storage/store';
 import { Plus, ToolbarIcon } from './icons';
 
-// The add button, and in a project, a button adding a section. While editing
-// on desktop, buttons that move the to-do to another list, and that close the
-// editor and move the to-do to the Trash (or back out of it).
+// The add button, and in a project, a button adding a section. While editing,
+// buttons that move the to-do to another list, and that close the editor and
+// move the to-do to the Trash (or back out of it); on the phone they are
+// labelled, beside a button that closes the editor.
 export function Footer({
   footerRef,
   addButtonRef,
@@ -26,7 +27,7 @@ export function Footer({
   add: () => void;
   addSection?: () => void;
   move: (anchor: DOMRect) => void;
-  closeEditor: (then: (id: string) => void) => void;
+  closeEditor: (then?: (id: string) => void) => void;
 }) {
   return (
     <footer className="inbox-footer" ref={footerRef}>
@@ -64,7 +65,44 @@ export function Footer({
             </button>
           )}
         </>
-      ) : phone ? null : inTrash ? (
+      ) : phone ? (
+        <>
+          {inTrash ? (
+            <button
+              className="bar-button"
+              onClick={() =>
+                closeEditor((id) => void store.setTrashed(id, false))
+              }
+            >
+              <ToolbarIcon d="M19.5 12h-15M10.5 6l-6 6 6 6" />
+              Put Back
+            </button>
+          ) : (
+            <>
+              <button
+                className="bar-button"
+                aria-haspopup="dialog"
+                onClick={(e) => move(e.currentTarget.getBoundingClientRect())}
+              >
+                <ToolbarIcon d="M4.5 12h15M13.5 6l6 6-6 6" />
+                Move
+              </button>
+              <button
+                className="bar-button bar-danger"
+                onClick={() =>
+                  closeEditor((id) => void store.setTrashed(id, true))
+                }
+              >
+                <ToolbarIcon d="M4.5 7h15M9.5 7V4.8h5V7M6.8 7l.8 12.2a1.6 1.6 0 0 0 1.6 1.5h5.6a1.6 1.6 0 0 0 1.6-1.5L17.2 7" />
+                Delete
+              </button>
+            </>
+          )}
+          <button className="bar-done" onClick={() => closeEditor()}>
+            Done
+          </button>
+        </>
+      ) : inTrash ? (
         <button
           className="footer-button"
           aria-label="Put back"

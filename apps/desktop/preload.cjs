@@ -5,5 +5,6 @@ contextBridge.exposeInMainWorld(
     platform: 'macos',
     request: (/** @type {{command: string, data?: string}} */ options) =>
       ipcRenderer.invoke('sunto:storage', options),
+    showEmojiPanel: () => ipcRenderer.invoke('sunto:emoji'),
   }),
 );
