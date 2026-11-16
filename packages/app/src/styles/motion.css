@@ -390,8 +390,21 @@
   .inbox-app:not(.is-home) .inbox-main > :not(.inbox-footer, .toast-region) {
     animation: slide-in 0.32s var(--ease-out);
   }
-  .is-home .sidebar {
+  .is-home .sidebar,
+  .inbox-app.is-returning:not(.is-home)
+    .inbox-main
+    > :not(.inbox-footer, .toast-region) {
     animation: slide-back 0.32s var(--ease-out);
+  }
+  /* A screen swiped back to is already in place, as is the one a swipe
+     uncovers. */
+  .inbox-app.is-swiped:not(.is-home)
+    .inbox-main
+    > :not(.inbox-footer, .toast-region),
+  .is-swiped.is-home .sidebar,
+  .inbox-app .swipe-under,
+  .inbox-app .swipe-under * {
+    animation: none !important;
   }
   /* Sheets rise from the bottom over a fading scrim. */
   .inbox-app .popover,

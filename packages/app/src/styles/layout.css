@@ -196,9 +196,37 @@ h1 {
     font-weight: 500;
   }
   .back-button svg {
+    flex: none;
     width: 22px;
     height: 22px;
     stroke-width: 2.4;
+  }
+  .back-button {
+    max-width: calc(100% - 24px);
+  }
+  /* While swiping back, the screen follows the finger over the one it
+     uncovers: the lists, or a copy of the previous screen. */
+  .is-swiping .inbox-main:not(.swipe-under) {
+    z-index: 1;
+    background: var(--bg);
+    box-shadow: -10px 0 30px rgb(0 0 0 / 14%);
+  }
+  .swipe-under {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .sidebar.swipe-under {
+    display: flex;
+    width: auto;
+    background: var(--bg);
+    border-right: 0;
+  }
+  .back-button span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   /* iOS large titles. */
   .list-title,

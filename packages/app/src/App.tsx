@@ -18,6 +18,7 @@ import { useEditor } from './hooks/useEditor';
 import { useGlide } from './hooks/useGlide';
 import { useNewTodoKey } from './hooks/useNewTodoKey';
 import { usePhone } from './hooks/usePhone';
+import { useSwipeBack } from './hooks/useSwipeBack';
 import { useSync } from './hooks/useSync';
 import { useTaskKeyboard } from './hooks/useTaskKeyboard';
 import {
@@ -55,6 +56,14 @@ export function App() {
   // The phone shows one screen at a time, starting with its lists.
   const [home, setHome] = useState(true);
   const atHome = phone && home;
+  // The screens opened before this one since leaving the lists, which back
+  // returns to in turn, with a copy of each to show while swiping back. A
+  // screen slides in from the right when opened, from the left when gone back
+  // to, and is already in place once swiped back to.
+  const [trail, setTrail] = useState<View[]>([]);
+  const copies = useRef(new Map<View, HTMLElement>());
+  const [arrival, setArrival] = useState<'push' | 'pop' | 'swipe'>('push');
+  const mainRef = useRef<HTMLElement>(null);
   const { editing, setEditing, closeEditor, editorArea, footer, addButton } =
     useEditor();
   const [lingering, setLingering] = useState<Record<string, true>>({});
@@ -207,15 +216,49 @@ export function App() {
   function showView(next: View) {
     if (editing) closeEditor();
     setSelected(null);
+    if (phone && !home && next !== view) remember();
+    else if (home) setTrail([]);
+    setArrival('push');
     setSelectedView(next);
     setHome(false);
   }
-  function goHome() {
+  function goHome(swiped = false) {
     if (editing) closeEditor();
     setSelected(null);
     setPlanning(null);
+    setTrail([]);
+    copies.current.clear();
+    setArrival(swiped ? 'swipe' : 'push');
     setHome(true);
   }
+  function remember() {
+    setTrail([...trail, view]);
+    if (mainRef.current)
+      copies.current.set(view, mainRef.current.cloneNode(true) as HTMLElement);
+  }
+  // Back to the previous screen still there, or else the lists.
+  const left = trail.filter((v) => isStatic(v) || lists[v]);
+  const previous = left[left.length - 1] as View | undefined;
+  function goBack(swiped = false) {
+    if (!previous) return goHome(swiped);
+    if (editing) closeEditor();
+    setSelected(null);
+    setPlanning(null);
+    setTrail(trail.slice(0, trail.lastIndexOf(previous)));
+    setArrival(swiped ? 'swipe' : 'pop');
+    setSelectedView(previous);
+  }
+  // What a swipe back uncovers: the lists, or a copy of the previous screen.
+  function behind() {
+    if (!previous) return document.querySelector<HTMLElement>('.sidebar');
+    const copy = copies.current.get(previous)?.cloneNode(true);
+    if (!(copy instanceof HTMLElement)) return null;
+    copy
+      .querySelectorAll('.inbox-footer, .toast-region')
+      .forEach((e) => e.remove());
+    return copy;
+  }
+  useSwipeBack(() => goBack(true), behind, atHome || welcome);
   async function addTask(section = '', near?: Task) {
     // New to-dos join the open project or area; elsewhere they go to the
     // Inbox. In Today they are due today, and in the goal they also join it.
@@ -226,7 +269,12 @@ export function App() {
     const shown = atHome ? 'inbox' : view;
     const list = atHome ? undefined : near ? lists[near.list] : openList;
     const dated = shown === 'today' || shown === 'goal';
-    if (!list && !dated) setSelectedView('inbox');
+    if (!list && !dated) {
+      if (atHome) setTrail([]);
+      else if (view !== 'inbox') remember();
+      setArrival('push');
+      setSelectedView('inbox');
+    }
     setHome(false);
     if (shown === 'goal') setPlanning(null);
     const id = await store.add(
@@ -355,7 +403,7 @@ export function App() {
   };
   return (
     <div
-      className={`inbox-app${editing ? ' is-editing' : ''}${atHome ? ' is-home' : ''}${planning ? ' is-planning' : ''}`}
+      className={`inbox-app${editing ? ' is-editing' : ''}${atHome ? ' is-home' : ''}${arrival === 'pop' ? ' is-returning' : arrival === 'swipe' ? ' is-swiped' : ''}${planning ? ' is-planning' : ''}`}
     >
       <Sidebar
         library={library}
@@ -367,12 +415,19 @@ export function App() {
         addList={(kind) => void addList(kind)}
       />
       <main
+        ref={mainRef}
         className={`inbox-main view-${openList ? 'list' : view}${project?.kanban ? ' view-board' : ''}`}
       >
         {phone && (
-          <button className="back-button" onClick={goHome}>
+          <button className="back-button" onClick={() => goBack()}>
             <ToolbarIcon d="M15 5l-7 7 7 7" />
-            Lists
+            <span>
+              {previous
+                ? isStatic(previous)
+                  ? titles[previous]
+                  : lists[previous].title || untitled(lists[previous])
+                : 'Lists'}
+            </span>
           </button>
         )}
         {openList ? (
