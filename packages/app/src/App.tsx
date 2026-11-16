@@ -16,6 +16,7 @@ import {
 import { useDailyTarget } from './hooks/useDailyTarget';
 import { useEditor } from './hooks/useEditor';
 import { useGlide } from './hooks/useGlide';
+import { useNewTodoKey } from './hooks/useNewTodoKey';
 import { usePhone } from './hooks/usePhone';
 import { useSync } from './hooks/useSync';
 import { useTaskKeyboard } from './hooks/useTaskKeyboard';
@@ -215,27 +216,40 @@ export function App() {
     setPlanning(null);
     setHome(true);
   }
-  async function addTask(section = '') {
+  async function addTask(section = '', near?: Task) {
     // New to-dos join the open project or area; elsewhere they go to the
     // Inbox. In Today they are due today, and in the goal they also join it.
     // In a project showing one epic, they join that epic. From the phone's
-    // lists, they go to the Inbox.
+    // lists, they go to the Inbox. Added `near` another to-do, they join its
+    // project or area and section instead.
     if (editing) closeEditor();
     const shown = atHome ? 'inbox' : view;
-    const list = atHome ? undefined : openList;
+    const list = atHome ? undefined : near ? lists[near.list] : openList;
     const dated = shown === 'today' || shown === 'goal';
     if (!list && !dated) setSelectedView('inbox');
     setHome(false);
     if (shown === 'goal') setPlanning(null);
     const id = await store.add(
       list?.id,
-      section,
+      near ? near.section : section,
       dated
         ? { date: today, planned: shown === 'goal' ? today : '' }
-        : { epic: list ? epic : '' },
+        : { epic: list && list === openList ? epic : '' },
     );
     if (store.getSnapshot().state.tasks[id]) setEditing(id);
   }
+  // Cmd+N adds a to-do beside the one being edited or selected, if any, so
+  // it joins that to-do's list and section; in the Logbook and Trash it goes
+  // to the Inbox.
+  function addHere() {
+    setMenu(null);
+    const near =
+      view === 'logbook' || view === 'trash'
+        ? undefined
+        : shown.find((t) => t.id === (editing ?? selected));
+    void addTask('', near);
+  }
+  useNewTodoKey(addHere, !ready || welcome);
   function addSection() {
     if (editing) closeEditor();
     if (project) void store.addList('section', project.id);

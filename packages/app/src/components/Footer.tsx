@@ -40,7 +40,7 @@ export function Footer({
               className="add-button"
               disabled={!ready}
               aria-label="New to-do"
-              data-hint="New To-Do"
+              data-hint="New To-Do (⌘N)"
               onClick={add}
             >
               <Plus />
