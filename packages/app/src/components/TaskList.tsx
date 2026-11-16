@@ -61,6 +61,7 @@ export function TaskItem({
         <Editor
           task={task}
           today={today}
+          library={library}
           list={list}
           progress={list ? library.progress(list.id) : 0}
           epic={epic}

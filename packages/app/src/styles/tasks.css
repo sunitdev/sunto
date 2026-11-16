@@ -262,12 +262,23 @@
   background: var(--card);
   box-shadow: var(--shadow);
 }
-.editor-title {
+.editor-title-field {
   flex: 1;
+  min-width: 0;
+  display: grid;
+}
+/* The marks sit behind the field in the same place, laid out alike. */
+.editor-title-field > * {
+  grid-area: 1 / 1;
+}
+.editor-title,
+.editor-title-marks {
+  width: 100%;
   min-width: 0;
   border: 0;
   resize: none;
   field-sizing: content;
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
   background: transparent;
   padding: 4px 0;
@@ -275,6 +286,24 @@
   line-height: 20px;
   font-weight: 500;
   color: inherit;
+}
+.editor-title-marks {
+  color: transparent;
+  pointer-events: none;
+  user-select: none;
+}
+.editor-title-marks mark {
+  color: transparent;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--date) 16%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--date) 16%, transparent);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.editor-title-marks mark.is-list,
+.editor-title-marks mark.is-section {
+  background: color-mix(in srgb, var(--area-icon) 18%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--area-icon) 18%, transparent);
 }
 .editor-notes {
   display: block;
@@ -332,6 +361,13 @@
 }
 .date-pill.is-overdue {
   color: var(--danger);
+}
+/* A date or list typed in the title, applied once the editor closes. */
+.date-pill.is-typed {
+  color: var(--date);
+}
+.move-pill.is-typed {
+  color: var(--area-icon);
 }
 .date-pill .calendar-icon {
   width: 15px;
@@ -457,7 +493,8 @@
   padding: 8px 10px;
   border-radius: 10px;
 }
-.board .editor-title {
+.board .editor-title,
+.board .editor-title-marks {
   font-size: 13px;
   font-weight: 400;
 }
@@ -710,7 +747,8 @@
   .is-editing .task-item:not(.task-item--editing) {
     opacity: 0.3;
   }
-  .editor-title {
+  .editor-title,
+  .editor-title-marks {
     padding: 9px 0;
     font-size: 17px;
     line-height: 22px;

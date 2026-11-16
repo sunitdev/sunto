@@ -145,8 +145,12 @@
 .context-menu {
   animation: pop-in 0.16s var(--ease-out);
 }
-.context-menu {
+.context-menu,
+.list-suggestions {
   transform-origin: top left;
+}
+.list-suggestions {
+  animation: pop-in 0.16s var(--ease-out);
 }
 .new-list-menu {
   transform-origin: bottom left;

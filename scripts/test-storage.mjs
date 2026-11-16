@@ -15,6 +15,7 @@ try {
         'tests/dates.test.mjs',
         'tests/selectors.test.mjs',
         'tests/store.test.mjs',
+        'tests/quickAdd.test.mjs',
       ],
     ],
     [

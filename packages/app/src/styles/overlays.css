@@ -257,6 +257,40 @@
   height: 14px;
   color: var(--muted);
 }
+/* The lists a "#" in a new to-do's title could name, over the page beside
+   the title rather than as a sheet, so typing carries on. */
+.list-suggestions {
+  position: fixed;
+  z-index: 20;
+  width: 260px;
+  max-height: 252px;
+  border-radius: 12px;
+  background: var(--pop);
+  border: 0.5px solid var(--pop-border);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 28%);
+  backdrop-filter: var(--pop-blur);
+}
+.list-suggestions button:hover {
+  background: none;
+}
+.list-suggestions .move-row.is-active {
+  background: var(--sel);
+}
+.suggestion-section {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--icon);
+  font-size: 15px;
+  line-height: 1;
+}
+.suggestion-section svg {
+  width: 18px;
+  height: 18px;
+}
 .move-empty {
   margin: 0;
   padding: 10px 8px;
