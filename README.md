@@ -2,6 +2,10 @@
 
 A minimal to-do app for macOS and iPhone, with sync through an iCloud Drive folder.
 
+![Adding to-dos, setting a due date, creating a project with a Kanban board, and planning Today's Goal](docs/demo.gif)
+
+Press **+** to add a to-do, double-click one to add notes and a date, and tick it off to send it to the Logbook. Use **New List** for projects and areas, the **⋯** menu to switch a project to a Kanban board, and **Today's Goal → Plan** to pick what you'll finish today.
+
 - Inbox, Today, Today's Goal, Logbook and Trash
 - Projects, areas, sections, epics and a Kanban board
 - Due dates and repeating to-dos
