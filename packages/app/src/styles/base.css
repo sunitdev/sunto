@@ -13,6 +13,8 @@
   color: var(--fg);
   background: var(--bg);
   font-synthesis: none;
+  /* An app's page never zooms, even on a double tap. */
+  touch-action: manipulation;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   --accent: #0a6cf0;
