@@ -34,4 +34,5 @@ Create a **Sunto** folder in iCloud Drive, then choose it when Sunto first opens
 pnpm dev:desktop   # Electron with hot reload
 pnpm dev:web       # browser at http://127.0.0.1:5173
 pnpm lint && pnpm typecheck && pnpm test:storage
+pnpm icons         # re-render app icons from icons/*.svg
 ```
