@@ -3,30 +3,31 @@ import * as store from '../storage/store';
 import type { Task } from '../storage/model';
 import { useDraft } from '../hooks/useDraft';
 import { untitled } from '../views';
-import { ContextMenu } from './ContextMenu';
+import { ContextMenu, type MenuItem } from './ContextMenu';
 import { EmojiPicker } from './EmojiPicker';
 import { ListIcon, MoreIcon } from './icons';
 
-// A project or area's icon, name and notes. A project also has actions:
-// showing it as a list or a board, adding a section, and deleting it. Given
-// `areas`, as on the phone where projects can't be dragged between areas, they
-// also move it to one of them; `area` is its area ('' for none).
+// A project or area's icon, name and notes, and a menu of actions: deleting
+// it and, for a project, showing it as a list or a board and adding a section.
+// Given `areas`, as on the phone where projects can't be dragged between areas,
+// they also move a project to one of them; `area` is its area ('' for none).
 export function ListHeader({
   list,
   progress,
   areas,
   area,
   addSection,
-  deleteProject,
+  deleteList,
 }: {
   list: Task;
   progress: number;
   areas?: Task[];
   area: string;
   addSection: () => void;
-  deleteProject: () => void;
+  deleteList: () => void;
 }) {
   const { draft, change } = useDraft(list);
+  const project = list.kind === 'project';
   const [picker, setPicker] = useState<DOMRect | null>(null);
   const [menu, setMenu] = useState<DOMRect | null>(null);
   const closePicker = useCallback(() => setPicker(null), []);
@@ -40,6 +41,27 @@ export function ListHeader({
   function moveTo(next: string) {
     if (next !== area) void store.update(list.id, { list: next });
   }
+  // Only a project has views, sections and (given `areas`) an area.
+  const projectItems: MenuItem[] = [
+    { heading: 'View as' },
+    { label: 'List', checked: !list.kanban, action: () => setKanban(false) },
+    { label: 'Kanban', checked: list.kanban, action: () => setKanban(true) },
+    'divider',
+    { label: 'Add Section', action: addSection },
+    'divider',
+    ...(areas
+      ? [
+          { heading: 'Area' },
+          { label: 'No Area', checked: !area, action: () => moveTo('') },
+          ...areas.map((a) => ({
+            label: a.title || untitled(a),
+            checked: area === a.id,
+            action: () => moveTo(a.id),
+          })),
+          'divider' as const,
+        ]
+      : []),
+  ];
   return (
     <>
       <header className="inbox-header list-header">
@@ -62,18 +84,16 @@ export function ListHeader({
           value={draft.title}
           onChange={(e) => change('title', e.target.value)}
         />
-        {list.kind === 'project' && (
-          <button
-            className="list-actions"
-            aria-label="Project actions"
-            title="Project actions"
-            aria-haspopup="true"
-            aria-expanded={!!menu}
-            onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}
-          >
-            <MoreIcon />
-          </button>
-        )}
+        <button
+          className="list-actions"
+          aria-label={project ? 'Project actions' : 'Area actions'}
+          title={project ? 'Project actions' : 'Area actions'}
+          aria-haspopup="true"
+          aria-expanded={!!menu}
+          onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}
+        >
+          <MoreIcon />
+        </button>
       </header>
       <textarea
         className="list-notes"
@@ -97,37 +117,12 @@ export function ListHeader({
           y={menu.bottom + 4}
           close={closeMenu}
           items={[
-            { heading: 'View as' },
+            ...(project ? projectItems : []),
             {
-              label: 'List',
-              checked: !list.kanban,
-              action: () => setKanban(false),
+              label: `Delete ${project ? 'Project' : 'Area'}…`,
+              danger: true,
+              action: deleteList,
             },
-            {
-              label: 'Kanban',
-              checked: list.kanban,
-              action: () => setKanban(true),
-            },
-            'divider',
-            { label: 'Add Section', action: addSection },
-            'divider',
-            ...(areas
-              ? [
-                  { heading: 'Area' },
-                  {
-                    label: 'No Area',
-                    checked: !area,
-                    action: () => moveTo(''),
-                  },
-                  ...areas.map((a) => ({
-                    label: a.title || untitled(a),
-                    checked: area === a.id,
-                    action: () => moveTo(a.id),
-                  })),
-                  'divider' as const,
-                ]
-              : []),
-            { label: 'Delete Project…', danger: true, action: deleteProject },
           ]}
         />
       )}

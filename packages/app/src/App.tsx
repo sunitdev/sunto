@@ -235,24 +235,28 @@ export function App() {
     const id = await store.addList(kind);
     if (store.getSnapshot().state.tasks[id]) showView(id);
   }
-  function deleteProject(id: string) {
+  function deleteList(id: string) {
     setConfirmDelete(null);
     if (editing) closeEditor();
     if (selectedView === id) {
       setSelectedView('inbox');
       setHome(true);
     }
-    void store.deleteProject(id);
+    void store.deleteList(id);
   }
   const menuTask = menu && tasks.find((t) => t.id === menu.id);
   const movingTask = editing ? state.tasks[editing] : undefined;
-  const menuProject =
-    menu && lists[menu.id]?.kind === 'project' && lists[menu.id];
+  const menuList = menu && lists[menu.id];
   const deleting = confirmDelete ? lists[confirmDelete] : undefined;
   const deletingCount = deleting
     ? todos.filter(
         (t) => t.list === deleting.id && !t.trashed && t.title.trim(),
       ).length
+    : 0;
+  const deletingKind = deleting?.kind === 'area' ? 'area' : 'project';
+  // An area's projects stay, without an area.
+  const keptProjects = deleting
+    ? projects.filter((p) => p.list === deleting.id).length
     : 0;
   const areaProjects =
     openList?.kind === 'area'
@@ -309,7 +313,7 @@ export function App() {
             areas={phone ? library.areas : undefined}
             area={areaOf(openList)}
             addSection={addSection}
-            deleteProject={() => setConfirmDelete(openList.id)}
+            deleteList={() => setConfirmDelete(openList.id)}
           />
         ) : (
           <header className="inbox-header">
@@ -486,15 +490,15 @@ export function App() {
           }
         />
       )}
-      {menuProject && (
+      {menuList && (
         <ContextMenu
           x={menu.x}
           y={menu.y}
           close={closeMenu}
           items={[
             {
-              label: 'Delete Project…',
-              action: () => setConfirmDelete(menuProject.id),
+              label: `Delete ${menuList.kind === 'area' ? 'Area' : 'Project'}…`,
+              action: () => setConfirmDelete(menuList.id),
             },
           ]}
         />
@@ -502,13 +506,18 @@ export function App() {
       {deleting && (
         <ConfirmDialog
           title={`Delete “${deleting.title || untitled(deleting)}”?`}
-          body={
+          body={[
             deletingCount === 0
-              ? 'This project has no to-dos. The project can’t be restored.'
-              : `Its ${deletingCount === 1 ? '1 to-do' : `${deletingCount} to-dos`} will be moved to the Trash. The project itself can’t be restored.`
-          }
-          action="Delete Project"
-          confirm={() => deleteProject(deleting.id)}
+              ? `This ${deletingKind} has no to-dos.`
+              : `Its ${deletingCount === 1 ? '1 to-do' : `${deletingCount} to-dos`} will be moved to the Trash.`,
+            keptProjects > 0 &&
+              `Its ${keptProjects === 1 ? 'project' : `${keptProjects} projects`} will be kept, without an area.`,
+            `The ${deletingKind} itself can’t be restored.`,
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          action={`Delete ${deletingKind === 'area' ? 'Area' : 'Project'}`}
+          confirm={() => deleteList(deleting.id)}
           cancel={() => setConfirmDelete(null)}
         />
       )}

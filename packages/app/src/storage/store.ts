@@ -219,12 +219,12 @@ export function deleteSection(id: string) {
     [id, { deleted: true }],
   ]);
 }
-// The project, its sections and its epics can't be restored; its to-dos move to Trash
-// and Put Back returns them to the Inbox, remembering the project's name
-// meanwhile.
-export function deleteProject(id: string) {
-  const project = state.tasks[id];
-  if (!project) return Promise.resolve();
+// The project or area, and a project's sections and epics, can't be restored;
+// its to-dos move to Trash and Put Back returns them to the Inbox, remembering
+// the list's name meanwhile. An area's projects are kept, without an area.
+export function deleteList(id: string) {
+  const list = state.tasks[id];
+  if (!list) return Promise.resolve();
   const now = Date.now();
   const children = Object.values(state.tasks).filter(
     (t) => t.list === id && !t.deleted,
@@ -232,16 +232,20 @@ export function deleteProject(id: string) {
   return updateAll([
     ...children.map((t): [string, Partial<Fields>] => [
       t.id,
-      t.kind === 'task' && t.title.trim()
-        ? {
-            list: '',
-            section: '',
-            epic: '',
-            deletedFrom: project.title || 'New Project',
-            trashed: true,
-            trashedAt: t.trashed ? t.trashedAt : now,
-          }
-        : { deleted: true },
+      t.kind === 'project'
+        ? { list: '' }
+        : t.kind === 'task' && t.title.trim()
+          ? {
+              list: '',
+              section: '',
+              epic: '',
+              deletedFrom:
+                list.title ||
+                (list.kind === 'area' ? 'New Area' : 'New Project'),
+              trashed: true,
+              trashedAt: t.trashed ? t.trashedAt : now,
+            }
+          : { deleted: true },
     ]),
     [id, { deleted: true }],
   ]);

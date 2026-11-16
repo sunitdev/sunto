@@ -124,7 +124,6 @@ export function Sidebar({
           setDrop(null);
         }}
         onContextMenu={(e) => {
-          if (!project) return;
           e.preventDefault();
           openMenu({ id: list.id, x: e.clientX, y: e.clientY });
         }}
