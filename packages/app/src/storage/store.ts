@@ -1,7 +1,7 @@
 import {
   emptyState,
-  merge,
   mutate,
+  reconcile,
   restore,
   type Fields,
   type State,
@@ -253,20 +253,23 @@ export function sync() {
     emit();
     try {
       await request('save', JSON.stringify(state));
-      const result = await request(
-        'exchange',
-        JSON.stringify(Object.values(state.changes)),
+      const result = reconcile(
+        state,
+        await request('pull', state.device),
+        Date.now(),
       );
-      let next = state;
-      const failures: string[] = [];
-      for (const file of result.files ?? []) {
-        try {
-          next = merge(next, JSON.parse(file));
-        } catch (e) {
-          failures.push(String(e));
-        }
-      }
-      await persist(next);
+      await persist(result.state);
+      // Legacy files are removed only once this device's file holds them.
+      await request(
+        'push',
+        JSON.stringify({
+          device: state.device,
+          snapshot: JSON.stringify({ ...state, saved: Date.now() }),
+          retired: result.retired,
+          legacy: result.imported,
+        }),
+      );
+      const { failures } = result;
       if (failures.length)
         throw Error(
           `${failures.length} sync file(s) could not be imported. ${failures[0]}`,

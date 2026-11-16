@@ -1,5 +1,11 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
-export type Reply = { data?: string; folder?: string; files?: string[] };
+export type Reply = {
+  data?: string;
+  folder?: string;
+  files?: string[];
+  legacy?: string[];
+  pending?: boolean;
+};
 export interface NativeStorage {
   request(options: { command: string; data?: string }): Promise<Reply>;
 }

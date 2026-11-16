@@ -36,10 +36,11 @@ test('failed local saves retain edits for retry, and export happens only after a
       return {};
     }
     if (command === 'choose') return { folder: 'Sunto' };
-    if (command === 'exchange') {
+    if (command === 'pull') return { files: [] };
+    if (command === 'push') {
       exports++;
-      assert.equal(JSON.parse(saved).version, 1);
-      return { files: JSON.parse(data).map((c) => JSON.stringify(c)) };
+      assert.equal(JSON.parse(saved).version, 2);
+      return {};
     }
     return {};
   };
@@ -72,6 +73,75 @@ test('failed local saves retain edits for retry, and export happens only after a
   assert.equal(store.getSnapshot().error, '');
   assert.equal(JSON.parse(saved).tasks[id].title, 'Must survive a failed save');
   assert.equal(exports, before + 1);
+  delete globalThis.suntoTestRequest;
+});
+test('sync merges other devices and legacy files, then removes legacy files only after saving', async () => {
+  let saved;
+  const calls = [];
+  const other = {
+    version: 2,
+    device: '8a3c9d8e-1111-4b6a-9d3e-000000000001',
+    clock: 3,
+    saved: Date.now(),
+    seen: {},
+    tasks: {
+      remote: {
+        id: 'remote',
+        title: 'From the phone',
+        stamps: { title: [3, '8a3c9d8e-1111-4b6a-9d3e-000000000001'] },
+      },
+    },
+  };
+  const legacy = {
+    version: 1,
+    id: '0e1a1add-90ad-4ef8-87b2-14f53112ac9c',
+    device: '1582a77a-e9ae-4db8-86ac-9a6133020af5',
+    task: 'old',
+    revision: 21,
+    patch: { title: 'Project 1', kind: 'project' },
+  };
+  globalThis.suntoTestRequest = async (command, data) => {
+    calls.push(command);
+    if (command === 'load') return { data: saved };
+    if (command === 'save') saved = data;
+    if (command === 'choose') return { folder: 'Sunto' };
+    if (command === 'pull')
+      return {
+        files: [JSON.stringify(other)],
+        legacy: [JSON.stringify(legacy)],
+      };
+    if (command === 'push') {
+      const push = JSON.parse(data);
+      const snapshot = JSON.parse(push.snapshot);
+      assert.equal(push.device, snapshot.device);
+      assert.deepEqual(push.legacy, [legacy.id]);
+      assert.deepEqual(push.retired, []);
+      assert.equal(snapshot.tasks.remote.title, 'From the phone');
+      assert.equal(snapshot.tasks.old.title, 'Project 1');
+      assert.equal(typeof snapshot.saved, 'number');
+      assert.deepEqual(JSON.parse(saved).tasks, snapshot.tasks);
+    }
+    return {};
+  };
+  const driverURL = compile(
+    'export const native = true; export const request = (command, data) => globalThis.suntoTestRequest(command, data);',
+  );
+  const source = readFileSync(
+    new URL('../packages/app/src/storage/store.ts', import.meta.url),
+    'utf8',
+  )
+    .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
+    .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
+    .replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL));
+  const store = await import(compile(source + '\n// sync test instance'));
+  await store.start();
+  await store.chooseFolder();
+  assert.deepEqual(calls.slice(-4), ['save', 'pull', 'save', 'push']);
+  const { state } = store.getSnapshot();
+  assert.equal(state.tasks.remote.title, 'From the phone');
+  assert.equal(state.tasks.old.kind, 'project');
+  assert.equal(state.seen[other.device], 3);
+  assert.equal(state.clock, 21);
   delete globalThis.suntoTestRequest;
 });
 test('trash purges to-dos trashed more than three months ago', async () => {

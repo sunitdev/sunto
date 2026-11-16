@@ -64,6 +64,17 @@ final class StorageCore {
     }
     return String(cString: text)
   }
+  // Keeps a copy of a version 1 database before it is first saved as
+  // version 2, since that save drops its change history.
+  func backupLegacyDatabase() throws {
+    let backup = root.appendingPathComponent("tasks-v1-backup.sqlite")
+    guard !FileManager.default.fileExists(atPath: backup.path),
+      let current = try database(),
+      let parsed = try? JSONSerialization.jsonObject(with: Data(current.utf8)) as? [String: Any],
+      parsed["version"] as? Int == 1
+    else { return }
+    try FileManager.default.copyItem(at: root.appendingPathComponent("tasks.sqlite"), to: backup)
+  }
   var bookmarkURL: URL { root.appendingPathComponent("sync-folder.bookmark") }
   func select(_ url: URL) throws {
     let scoped = url.startAccessingSecurityScopedResource()
@@ -90,6 +101,57 @@ final class StorageCore {
     if stale { try select(url) }
     return url
   }
+  // Each device writes only its own file here, so iCloud never has to merge.
+  let devicesFolder = "sunto-devices-v2"
+  // Version 1 kept one file per change; they are imported, then removed.
+  let legacyFolder = "sunto-changes-v1"
+  func coordinate(writing: Bool, _ work: (URL) throws -> [String: Any]) throws -> [String: Any] {
+    guard let url = try folder() else { throw failure("Choose your iCloud Drive/Sunto folder") }
+    let scoped = url.startAccessingSecurityScopedResource()
+    defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+    var coordinationError: NSError?
+    var result: Result<[String: Any], Error> = .success([:])
+    let coordinator = NSFileCoordinator()
+    if writing {
+      coordinator.coordinate(writingItemAt: url, options: .forMerging, error: &coordinationError) {
+        target in result = Result { try work(target) }
+      }
+    } else {
+      coordinator.coordinate(readingItemAt: url, options: [], error: &coordinationError) {
+        target in result = Result { try work(target) }
+      }
+    }
+    if let error = coordinationError { throw error }
+    return try result.get()
+  }
+  // The JSON files in `dir`, other than `except`. Files iCloud has not fully
+  // downloaded yet are requested and set `pending`.
+  func read(_ dir: URL, except: String?, pending: inout Bool) throws -> [String] {
+    guard FileManager.default.fileExists(atPath: dir.path) else { return [] }
+    var files: [String] = []
+    for file in try FileManager.default.contentsOfDirectory(
+      at: dir, includingPropertiesForKeys: [.ubiquitousItemDownloadingStatusKey])
+    {
+      let name = file.lastPathComponent
+      // iCloud shows a file it has not downloaded as ".<name>.icloud".
+      if name.hasPrefix("."), name.hasSuffix(".json.icloud") {
+        try? FileManager.default.startDownloadingUbiquitousItem(
+          at: dir.appendingPathComponent(String(name.dropFirst().dropLast(7))))
+        pending = true
+        continue
+      }
+      guard !name.hasPrefix("."), file.pathExtension == "json", name != except else { continue }
+      let status = try file.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey])
+        .ubiquitousItemDownloadingStatus
+      if let status = status, status != .current {
+        try? FileManager.default.startDownloadingUbiquitousItem(at: file)
+        pending = true
+        if status == .notDownloaded { continue }
+      }
+      files.append(try String(contentsOf: file, encoding: .utf8))
+    }
+    return files
+  }
   func request(_ command: String, data: String?) throws -> [String: Any] {
     switch command {
     case "load":
@@ -103,8 +165,9 @@ final class StorageCore {
     case "save":
       guard let data = data,
         let parsed = try JSONSerialization.jsonObject(with: Data(data.utf8)) as? [String: Any],
-        parsed["version"] as? Int == 1
+        parsed["version"] as? Int == 2
       else { throw failure("Invalid save request") }
+      try backupLegacyDatabase()
       _ = try database(data)
       return [:]
     case "disconnect":
@@ -112,62 +175,45 @@ final class StorageCore {
         try FileManager.default.removeItem(at: bookmarkURL)
       }
       return [:]
-    case "exchange":
-      guard let url = try folder() else { throw failure("Choose your iCloud Drive/Sunto folder") }
-      let scoped = url.startAccessingSecurityScopedResource()
-      defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-      let dir = url.appendingPathComponent("sunto-changes-v1", isDirectory: true)
-      guard let data = data,
-        let changes = try JSONSerialization.jsonObject(with: Data(data.utf8)) as? [[String: Any]]
-      else { throw failure("Invalid sync request") }
-      var coordinationError: NSError?
-      var workError: Error?
-      var files: [String] = []
-      NSFileCoordinator().coordinate(
-        writingItemAt: dir, options: .forMerging, error: &coordinationError
-      ) { target in
-        do {
-          try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
-          for change in changes {
-            guard let id = change["id"] as? String, UUID(uuidString: id) != nil else {
-              throw self.failure("Invalid change ID")
-            }
-            let file = target.appendingPathComponent(id + ".json")
-            let bytes = try JSONSerialization.data(withJSONObject: change, options: [.sortedKeys])
-            if FileManager.default.fileExists(atPath: file.path) {
-              let existing = try Data(contentsOf: file)
-              guard let old = try JSONSerialization.jsonObject(with: existing) as? NSDictionary,
-                old.isEqual(to: change)
-              else { throw self.failure("Conflicting sync file: \(id)") }
-            } else {
-              let placeholder = target.appendingPathComponent("." + id + ".json.icloud")
-              if FileManager.default.fileExists(atPath: placeholder.path) {
-                try? FileManager.default.startDownloadingUbiquitousItem(at: file)
-                throw self.failure("Waiting for iCloud to download a change. Retry shortly.")
-              }
-              try bytes.write(to: file, options: .atomic)
-            }
-          }
-          for file in try FileManager.default.contentsOfDirectory(
-            at: target, includingPropertiesForKeys: [.isUbiquitousItemKey],
-            options: [.skipsHiddenFiles])
-          {
-            if file.pathExtension == "icloud" {
-              try? FileManager.default.startDownloadingUbiquitousItem(at: file)
-              continue
-            }
-            guard file.pathExtension == "json" else { continue }
-            let values = try file.resourceValues(forKeys: [.isUbiquitousItemKey])
-            if values.isUbiquitousItem == true {
-              try? FileManager.default.startDownloadingUbiquitousItem(at: file)
-            }
-            files.append(try String(contentsOf: file, encoding: .utf8))
-          }
-        } catch { workError = error }
+    case "pull":
+      guard let device = data, UUID(uuidString: device) != nil else {
+        throw failure("Invalid sync request")
       }
-      if let error = coordinationError { throw error }
-      if let error = workError { throw error }
-      return ["files": files]
+      return try coordinate(writing: false) { url in
+        var pending = false
+        let files = try self.read(
+          url.appendingPathComponent(self.devicesFolder), except: device + ".json",
+          pending: &pending)
+        let legacy = try self.read(
+          url.appendingPathComponent(self.legacyFolder), except: nil, pending: &pending)
+        return ["files": files, "legacy": legacy, "pending": pending]
+      }
+    case "push":
+      guard let data = data,
+        let request = try JSONSerialization.jsonObject(with: Data(data.utf8)) as? [String: Any],
+        let device = request["device"] as? String, UUID(uuidString: device) != nil,
+        let snapshot = request["snapshot"] as? String,
+        let retired = request["retired"] as? [String],
+        let legacy = request["legacy"] as? [String],
+        (retired + legacy).allSatisfy({ UUID(uuidString: $0) != nil }), !retired.contains(device)
+      else { throw failure("Invalid sync request") }
+      return try coordinate(writing: true) { url in
+        let devices = url.appendingPathComponent(self.devicesFolder, isDirectory: true)
+        try FileManager.default.createDirectory(at: devices, withIntermediateDirectories: true)
+        try Data(snapshot.utf8).write(
+          to: devices.appendingPathComponent(device + ".json"), options: .atomic)
+        for id in retired {
+          try? FileManager.default.removeItem(at: devices.appendingPathComponent(id + ".json"))
+        }
+        let old = url.appendingPathComponent(self.legacyFolder, isDirectory: true)
+        for id in legacy {
+          try? FileManager.default.removeItem(at: old.appendingPathComponent(id + ".json"))
+        }
+        if (try? FileManager.default.contentsOfDirectory(atPath: old.path))?.isEmpty == true {
+          try? FileManager.default.removeItem(at: old)
+        }
+        return [:]
+      }
     default: throw failure("Unknown storage command")
     }
   }

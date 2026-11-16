@@ -12,7 +12,7 @@ ipcMain.handle('sunto:storage', (event, options) => {
   if (
     event.senderFrame !== event.sender.mainFrame ||
     !options ||
-    !['load', 'save', 'choose', 'disconnect', 'exchange'].includes(
+    !['load', 'save', 'choose', 'disconnect', 'pull', 'push'].includes(
       options.command,
     ) ||
     (options.data !== undefined && typeof options.data !== 'string')
