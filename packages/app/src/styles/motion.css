@@ -258,6 +258,16 @@
   animation: pop-in 0.18s var(--ease-out);
 }
 
+/* Button hints fade in after a short hover, and leave at once. */
+[data-hint]::after {
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s var(--ease-out);
+}
+[data-hint]:hover::after {
+  transition-delay: 0.4s;
+}
+
 /* Drop targets light up gently. */
 .board-column,
 .sidebar-group {

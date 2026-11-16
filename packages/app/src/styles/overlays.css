@@ -764,3 +764,36 @@
     border-radius: 10px;
   }
 }
+/* A hint naming an icon button, above it under the pointer or when it has
+   keyboard focus. Devices without hover rely on the button's label. */
+@media (hover: hover) {
+  :where([data-hint]) {
+    position: relative;
+  }
+  [data-hint]::after {
+    content: attr(data-hint);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    z-index: 30;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--fg);
+    color: var(--bg);
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, 3px);
+  }
+  [data-hint]:is(:hover, :focus-visible)::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  /* A press hides it, so it doesn't sit over what the button opens. */
+  [data-hint]:active::after {
+    opacity: 0;
+  }
+}

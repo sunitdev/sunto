@@ -216,7 +216,7 @@ export function Sidebar({
         <button
           className="settings-open"
           aria-label="Settings"
-          title="Settings"
+          data-hint="Settings"
           aria-current={view === 'settings' ? 'page' : undefined}
           onClick={() => show('settings')}
         >

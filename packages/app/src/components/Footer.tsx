@@ -40,7 +40,7 @@ export function Footer({
               className="add-button"
               disabled={!ready}
               aria-label="New to-do"
-              title="New To-Do"
+              data-hint="New To-Do"
               onClick={add}
             >
               <Plus />
@@ -50,7 +50,7 @@ export function Footer({
             <button
               className="footer-button"
               aria-label="New section"
-              title="New Section"
+              data-hint="New Section"
               onClick={addSection}
             >
               <svg
@@ -107,7 +107,7 @@ export function Footer({
         <button
           className="footer-button"
           aria-label="Put back"
-          title="Put Back"
+          data-hint="Put Back"
           onClick={() => closeEditor((id) => void store.setTrashed(id, false))}
         >
           <ToolbarIcon d="M4.5 12h15M13.5 6l6 6-6 6" />
@@ -117,7 +117,7 @@ export function Footer({
           <button
             className="footer-button"
             aria-label="Move to another list"
-            title="Move"
+            data-hint="Move to Another List"
             aria-haspopup="dialog"
             onClick={(e) => move(e.currentTarget.getBoundingClientRect())}
           >
@@ -126,7 +126,7 @@ export function Footer({
           <button
             className="footer-button"
             aria-label="Move to Trash"
-            title="Move to Trash"
+            data-hint="Move to Trash"
             onClick={() => closeEditor(trashTodo)}
           >
             <ToolbarIcon d="M4.5 7h15M9.5 7V4.8h5V7M6.8 7l.8 12.2a1.6 1.6 0 0 0 1.6 1.5h5.6a1.6 1.6 0 0 0 1.6-1.5L17.2 7" />
