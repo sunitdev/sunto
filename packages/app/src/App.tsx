@@ -1,6 +1,7 @@
 import { useCallback, useState, useSyncExternalStore } from 'react';
 import * as store from './storage/store';
 import { native } from './storage/driver';
+import { confirmAction, trashTodo } from './feedback';
 import type { Task } from './storage/model';
 import { dayKey } from './storage/dates';
 import {
@@ -39,6 +40,7 @@ import { MovePopover } from './components/MovePopover';
 import { Settings, Welcome } from './components/Settings';
 import { Sidebar } from './components/Sidebar';
 import { TaskList } from './components/TaskList';
+import { Toast } from './components/Toast';
 
 export function App() {
   const { state, ready, error, folder } = useSyncExternalStore(
@@ -57,7 +59,6 @@ export function App() {
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(
     null,
   );
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   // The edited to-do's list, date and epic pickers, and the bounds of the
   // button opening each.
   const [moving, setMoving] = useState<DOMRect | null>(null);
@@ -126,12 +127,34 @@ export function App() {
     const i = shown.findIndex((t) => t.id === task.id);
     setSelected((shown[i + 1] ?? shown[i - 1])?.id ?? null);
   }
-  // In Trash, deleting is permanent; elsewhere it moves the to-do to Trash.
+  // In Trash, deleting is permanent, so it asks first; elsewhere it moves the
+  // to-do to Trash, with a toast to undo it.
   function remove(task: Task) {
-    leave(task);
-    void (view === 'trash'
-      ? store.update(task.id, { deleted: true })
-      : store.setTrashed(task.id, true));
+    if (view !== 'trash') {
+      leave(task);
+      trashTodo(task.id);
+      return;
+    }
+    confirmAction({
+      title: `Delete “${task.title || 'New To-Do'}” permanently?`,
+      body: 'It will be deleted now, rather than three months after it was trashed. This can’t be undone.',
+      action: 'Delete',
+      run: () => {
+        leave(task);
+        void store.update(task.id, { deleted: true });
+      },
+    });
+  }
+  function emptyTrash() {
+    if (editing) closeEditor();
+    const trashed = tasks;
+    confirmAction({
+      title: 'Empty the Trash?',
+      body: `${trashed.length === 1 ? 'The to-do' : `All ${trashed.length} to-dos`} in the Trash will be deleted permanently. This can’t be undone.`,
+      action: 'Empty Trash',
+      run: () =>
+        void store.updateAll(trashed.map((t) => [t.id, { deleted: true }])),
+    });
   }
   function putBack(task: Task) {
     leave(task);
@@ -236,7 +259,6 @@ export function App() {
     if (store.getSnapshot().state.tasks[id]) showView(id);
   }
   function deleteList(id: string) {
-    setConfirmDelete(null);
     if (editing) closeEditor();
     if (selectedView === id) {
       setSelectedView('inbox');
@@ -244,20 +266,34 @@ export function App() {
     }
     void store.deleteList(id);
   }
+  function askDeleteList(id: string) {
+    const list = lists[id];
+    if (!list) return;
+    const kind = list.kind === 'area' ? 'area' : 'project';
+    const count = todos.filter(
+      (t) => t.list === id && !t.trashed && t.title.trim(),
+    ).length;
+    // An area's projects stay, without an area.
+    const kept = projects.filter((p) => p.list === id).length;
+    confirmAction({
+      title: `Delete “${list.title || untitled(list)}”?`,
+      body: [
+        count === 0
+          ? `This ${kind} has no to-dos.`
+          : `Its ${count === 1 ? '1 to-do' : `${count} to-dos`} will be moved to the Trash.`,
+        kept > 0 &&
+          `Its ${kept === 1 ? 'project' : `${kept} projects`} will be kept, without an area.`,
+        `The ${kind} itself can’t be restored.`,
+      ]
+        .filter(Boolean)
+        .join(' '),
+      action: `Delete ${kind === 'area' ? 'Area' : 'Project'}`,
+      run: () => deleteList(id),
+    });
+  }
   const menuTask = menu && tasks.find((t) => t.id === menu.id);
   const movingTask = editing ? state.tasks[editing] : undefined;
   const menuList = menu && lists[menu.id];
-  const deleting = confirmDelete ? lists[confirmDelete] : undefined;
-  const deletingCount = deleting
-    ? todos.filter(
-        (t) => t.list === deleting.id && !t.trashed && t.title.trim(),
-      ).length
-    : 0;
-  const deletingKind = deleting?.kind === 'area' ? 'area' : 'project';
-  // An area's projects stay, without an area.
-  const keptProjects = deleting
-    ? projects.filter((p) => p.list === deleting.id).length
-    : 0;
   const areaProjects =
     openList?.kind === 'area'
       ? projects.filter((p) => areaOf(p) === openList.id)
@@ -313,16 +349,17 @@ export function App() {
             areas={phone ? library.areas : undefined}
             area={areaOf(openList)}
             addSection={addSection}
-            deleteList={() => setConfirmDelete(openList.id)}
+            deleteList={() => askDeleteList(openList.id)}
           />
         ) : (
-          <header className="inbox-header">
+          <header key={`header-${view}`} className="inbox-header">
             <ViewIcon view={view as StaticView} />
             <h1>{titles[view as StaticView]}</h1>
           </header>
         )}
         {project && (
           <EpicBar
+            key={`epics-${project.id}`}
             project={project}
             library={library}
             filter={epic}
@@ -334,7 +371,8 @@ export function App() {
             {error} <button onClick={() => void store.retry()}>Retry</button>
           </div>
         )}
-        <div className="task-scroll">
+        {/* Keyed by view, so each view starts at the top and fades in. */}
+        <div key={`scroll-${view}`} className="task-scroll">
           {view === 'settings' && (
             <Settings folder={folder} target={target} setTarget={setTarget} />
           )}
@@ -375,15 +413,7 @@ export function App() {
               />
             ))}
           {view === 'trash' && tasks.length > 0 && (
-            <button
-              className="empty-trash"
-              onClick={() => {
-                if (editing) closeEditor();
-                void store.updateAll(
-                  tasks.map((t) => [t.id, { deleted: true }]),
-                );
-              }}
-            >
+            <button className="empty-trash" onClick={emptyTrash}>
               Empty Trash
             </button>
           )}
@@ -417,6 +447,7 @@ export function App() {
             )}
         </div>
         <div className="bottom-fade" aria-hidden="true" />
+        <Toast />
         <Footer
           footerRef={footer}
           addButtonRef={addButton}
@@ -481,12 +512,20 @@ export function App() {
             view === 'trash'
               ? [
                   { label: 'Put Back', action: () => putBack(menuTask) },
+                  'divider',
                   {
-                    label: 'Delete Immediately',
+                    label: 'Delete Immediately…',
+                    danger: true,
                     action: () => remove(menuTask),
                   },
                 ]
-              : [{ label: 'Delete', action: () => remove(menuTask) }]
+              : [
+                  {
+                    label: 'Move to Trash',
+                    danger: true,
+                    action: () => remove(menuTask),
+                  },
+                ]
           }
         />
       )}
@@ -498,29 +537,13 @@ export function App() {
           items={[
             {
               label: `Delete ${menuList.kind === 'area' ? 'Area' : 'Project'}…`,
-              action: () => setConfirmDelete(menuList.id),
+              danger: true,
+              action: () => askDeleteList(menuList.id),
             },
           ]}
         />
       )}
-      {deleting && (
-        <ConfirmDialog
-          title={`Delete “${deleting.title || untitled(deleting)}”?`}
-          body={[
-            deletingCount === 0
-              ? `This ${deletingKind} has no to-dos.`
-              : `Its ${deletingCount === 1 ? '1 to-do' : `${deletingCount} to-dos`} will be moved to the Trash.`,
-            keptProjects > 0 &&
-              `Its ${keptProjects === 1 ? 'project' : `${keptProjects} projects`} will be kept, without an area.`,
-            `The ${deletingKind} itself can’t be restored.`,
-          ]
-            .filter(Boolean)
-            .join(' ')}
-          action={`Delete ${deletingKind === 'area' ? 'Area' : 'Project'}`}
-          confirm={() => deleteList(deleting.id)}
-          cancel={() => setConfirmDelete(null)}
-        />
-      )}
+      <ConfirmDialog />
       {welcome && <Welcome />}
     </div>
   );

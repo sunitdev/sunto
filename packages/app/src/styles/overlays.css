@@ -702,3 +702,65 @@
     line-height: 20px;
   }
 }
+/* A short message along the bottom of the main column, such as the Undo
+   offered after moving a to-do to the Trash. */
+.toast-region {
+  position: absolute;
+  inset: auto 0 60px;
+  z-index: 8;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(100%, 420px);
+  min-height: 40px;
+  padding: 6px 6px 6px 16px;
+  border-radius: 12px;
+  background: var(--pop);
+  border: 0.5px solid var(--pop-border);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 22%);
+  backdrop-filter: var(--pop-blur);
+  font-size: 13px;
+  line-height: 18px;
+  pointer-events: auto;
+}
+.toast:not(:has(.toast-undo)) {
+  padding-right: 16px;
+}
+.toast-message {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toast-undo {
+  flex: none;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--link);
+  font-weight: 600;
+}
+@media (width < 700px) {
+  /* Above the add button. */
+  .toast-region {
+    bottom: calc(108px + env(safe-area-inset-bottom));
+  }
+  .toast {
+    min-height: 48px;
+    padding: 6px 6px 6px 18px;
+    border-radius: 16px;
+    font-size: 15px;
+    line-height: 20px;
+  }
+  .toast-undo {
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 10px;
+  }
+}

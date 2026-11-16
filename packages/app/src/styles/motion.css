@@ -1,0 +1,411 @@
+/* Motion: how things enter, leave and answer a press. Entrances are short
+   and ease out, presses spring back, and changes that happen on their own
+   (a count, a goal slot) pop once. Everything stops for reduced motion. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@keyframes pop-out {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+@keyframes slide-back {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes grow-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+@keyframes bump {
+  40% {
+    transform: scale(1.25);
+  }
+}
+@keyframes check-pop {
+  35% {
+    transform: scale(0.8);
+  }
+  70% {
+    transform: scale(1.14);
+  }
+}
+@keyframes slot-fill {
+  from {
+    opacity: 0.4;
+    transform: scaleX(0.3);
+  }
+}
+@keyframes glow {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 40%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 14px transparent;
+  }
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+}
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+/* A completed to-do fades, then its row closes up, just before it leaves
+   for the Logbook. */
+@keyframes row-leave {
+  55% {
+    opacity: 0;
+    grid-template-rows: 1fr;
+  }
+  to {
+    opacity: 0;
+    grid-template-rows: 0fr;
+  }
+}
+/* The editor's card grows out of the to-do's row. */
+@keyframes editor-open {
+  from {
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
+
+/* Views fade up into place; headers fade. */
+.task-scroll {
+  animation: rise-in 0.28s var(--ease-out);
+}
+.inbox-header,
+.list-notes,
+.epic-bar {
+  animation: fade-in 0.2s ease;
+}
+.empty-state {
+  animation: fade-in 0.35s ease 0.05s backwards;
+}
+.empty-icon {
+  animation: rise-in 0.45s var(--spring) 0.05s backwards;
+}
+.save-error {
+  animation: drop-in 0.22s var(--ease-out);
+}
+
+/* Popovers and menus open with a small scale. */
+.popover,
+.context-menu {
+  animation: pop-in 0.16s var(--ease-out);
+}
+.context-menu {
+  transform-origin: top left;
+}
+.new-list-menu {
+  transform-origin: bottom left;
+}
+/* Their pages and months slide in from the side they lead to. */
+.is-paged-on > .date-page,
+.calendar-grid.is-turned-on,
+.move-rows.slide-in {
+  animation: slide-in 0.22s var(--ease-out);
+}
+.is-paged-back > .date-page,
+.calendar-grid.is-turned-back,
+.move-rows.slide-back {
+  animation: slide-back 0.22s var(--ease-out);
+}
+
+/* Dialogs rise over a fading scrim, and fade away once answered. */
+.dialog-scrim {
+  animation: fade-in 0.18s ease;
+}
+.dialog {
+  animation: pop-in 0.26s var(--spring);
+}
+.dialog-scrim.is-closing {
+  pointer-events: none;
+  animation: fade-out 0.14s ease forwards;
+}
+.is-closing .dialog {
+  animation: pop-out 0.14s ease forwards;
+}
+.toast {
+  animation: toast-in 0.34s var(--spring);
+}
+.toast.is-leaving {
+  pointer-events: none;
+  animation: toast-out 0.2s ease forwards;
+}
+
+/* The checkbox gives under a press, and its tick draws in. */
+.task-box {
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    transform 0.25s var(--spring);
+}
+.task-check:active .task-box {
+  transform: scale(0.82);
+}
+.task-box svg path,
+.plan-ring svg path {
+  stroke-dasharray: 20 40;
+  stroke-dashoffset: 22;
+  transition: stroke-dashoffset 0.28s var(--ease-out) 0.04s;
+}
+.task-row--completed .task-box svg path,
+.plan-row[aria-checked='true'] .plan-ring svg path {
+  stroke-dashoffset: 0;
+}
+/* The strike-through is always there, but only shows once completed, so it
+   can fade in. */
+:is(.view-inbox, .view-today, .view-goal, .view-list) .task-title {
+  text-decoration: line-through;
+  text-decoration-color: transparent;
+  transition:
+    color 0.2s,
+    text-decoration-color 0.2s;
+}
+/* Where completed to-dos only linger, the box pops before the row leaves.
+   Elsewhere they are shown completed, and stay still. */
+:is(.view-inbox, .view-today, .view-list)
+  .task-item.task-row--completed:not(.task-item--editing) {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: row-leave 0.4s ease 0.45s forwards;
+}
+:is(.view-inbox, .view-today, .view-list)
+  .task-row--completed:not(.task-item--editing)
+  > .task-row {
+  min-height: 0;
+  overflow: hidden;
+}
+:is(.view-inbox, .view-today, .view-list)
+  .task-row--completed:not(.task-item--editing)
+  .task-box {
+  animation: check-pop 0.35s var(--ease-out);
+}
+.task-row {
+  transition: background-color 0.12s ease;
+}
+.task-item--dragging {
+  transition: opacity 0.15s ease;
+}
+
+/* The editor grows out of its row, then its notes and pills fade in. */
+.task-editor {
+  animation: editor-open 0.24s var(--ease-out);
+}
+.board .task-editor {
+  animation: pop-in 0.18s var(--ease-out);
+}
+.task-editor > .editor-notes,
+.task-editor > .editor-foot {
+  animation: fade-in 0.2s ease 0.08s backwards;
+}
+.inbox-footer > * {
+  animation: fade-in 0.18s ease;
+}
+.epic-name {
+  animation: pop-in 0.18s var(--ease-out);
+}
+
+/* Drop targets light up gently. */
+.board-column,
+.sidebar-group {
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.epic-chip {
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.25s var(--spring);
+}
+
+/* The sidebar: an area's projects unfold, and counts pop as they change. */
+.sidebar-area-projects {
+  animation: drop-in 0.2s var(--ease-out);
+}
+.sidebar-count {
+  animation: bump 0.32s var(--spring);
+}
+
+/* Today's Goal: cards rise in, slots fill, and a finished goal glows. */
+.plan-prompt,
+.planner,
+.goal-card {
+  animation: rise-in 0.28s var(--ease-out);
+}
+.goal-card.is-complete {
+  animation:
+    rise-in 0.28s var(--ease-out),
+    glow 0.9s ease-out 0.1s;
+}
+.goal-done {
+  animation: rise-in 0.3s var(--ease-out);
+}
+.plan-slots span {
+  transform-origin: left;
+}
+.plan-slots .is-filled,
+.plan-slots .is-over {
+  animation: slot-fill 0.35s var(--ease-out);
+}
+.plan-ring {
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    transform 0.25s var(--spring);
+}
+.plan-ring svg {
+  transition: opacity 0.15s;
+}
+.plan-row:active .plan-ring {
+  transform: scale(0.85);
+}
+
+/* Buttons that stand on their own give a little under a press. */
+:is(
+    .plan-primary,
+    .plan-secondary,
+    .goal-edit,
+    .dialog-actions button,
+    .toast-undo,
+    .empty-trash,
+    .welcome-choose,
+    .settings-button,
+    .date-footer button,
+    .new-list,
+    .epic-chip,
+    .epic-add,
+    .footer-button,
+    .bar-button,
+    .bar-done,
+    .stepper button,
+    .group-add,
+    .column-add,
+    .new-section,
+    .move-pill,
+    .date-pill,
+    .epic-pill,
+    .list-actions,
+    .section-button,
+    .icon-button,
+    .back-button
+  ):not(:disabled):active {
+  transform: scale(0.96);
+}
+.add-button:not(:disabled):active {
+  transform: scale(0.9);
+}
+
+/* The welcome screen settles in, one line after another. */
+.welcome > * {
+  animation: rise-in 0.5s var(--ease-out) backwards;
+}
+.welcome > .welcome-mark {
+  animation: grow-in 0.55s var(--spring) backwards;
+}
+.welcome > :nth-child(2) {
+  animation-delay: 0.06s;
+}
+.welcome > :nth-child(3) {
+  animation-delay: 0.12s;
+}
+.welcome > :nth-child(4) {
+  animation-delay: 0.18s;
+}
+.welcome > :nth-child(5) {
+  animation-delay: 0.24s;
+}
+
+@media (width < 700px) {
+  /* Opening a list pushes it in from the right; going back to the lists
+     brings them in from the left. */
+  .inbox-app:not(.is-home) .inbox-main > :not(.inbox-footer, .toast-region) {
+    animation: slide-in 0.32s var(--ease-out);
+  }
+  .is-home .sidebar {
+    animation: slide-back 0.32s var(--ease-out);
+  }
+  /* Sheets rise from the bottom over a fading scrim. */
+  .inbox-app .popover,
+  .inbox-app .context-menu {
+    animation: sheet-in 0.32s var(--ease-out);
+  }
+  .inbox-app:has(.popover, .context-menu)::after {
+    animation: fade-in 0.25s ease;
+  }
+  .is-editing .inbox-footer {
+    animation: sheet-in 0.28s var(--ease-out);
+  }
+  .add-button {
+    animation: grow-in 0.3s var(--spring);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0s !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0s !important;
+  }
+  /* Completed to-dos still stay a moment, then simply go. */
+  .task-item.task-row--completed {
+    animation: none !important;
+  }
+}

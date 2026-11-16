@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useState } from 'react';
 import * as store from '../storage/store';
+import { confirmAction } from '../feedback';
 import type { Task } from '../storage/model';
 import type { Library } from '../storage/selectors';
 import { taskDropTarget } from '../drag';
@@ -35,6 +36,24 @@ export function EpicBar({
   const closeMenu = useCallback(() => setMenu(null), []);
   const epics = library.epicsOf(project.id);
   const menuEpic = menu && epics.find((e) => e.id === menu.id);
+  function remove(epic: Task) {
+    const count = library.todos.filter(
+      (t) => t.list === project.id && t.epic === epic.id && !t.trashed,
+    ).length;
+    confirmAction({
+      title: `Delete “${epic.title || 'New Epic'}”?`,
+      body: `${
+        count === 0
+          ? 'No to-dos are in this epic.'
+          : `Its ${count === 1 ? 'to-do stays' : `${count} to-dos stay`} in the project, without an epic.`
+      } The epic itself can’t be restored.`,
+      action: 'Delete Epic',
+      run: () => {
+        if (filter === epic.id) setFilter('');
+        void store.deleteEpic(epic.id);
+      },
+    });
+  }
   return (
     <div className="epic-bar" role="group" aria-label="Epics">
       <button
@@ -123,12 +142,9 @@ export function EpicBar({
             })),
             'divider',
             {
-              label: 'Delete Epic',
+              label: 'Delete Epic…',
               danger: true,
-              action: () => {
-                if (filter === menuEpic.id) setFilter('');
-                void store.deleteEpic(menuEpic.id);
-              },
+              action: () => remove(menuEpic),
             },
           ]}
         />

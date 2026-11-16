@@ -17,6 +17,9 @@ import { place } from '../hooks/usePhone';
 import { RepeatIcon } from './icons';
 
 type Preset = Freq | 'weekdays';
+// The popover's pages, from the first.
+const pages = ['main', 'repeat', 'custom'] as const;
+type Page = (typeof pages)[number];
 type Mode = Preset | 'never' | 'custom';
 const workdays = [1, 2, 3, 4, 5];
 // Weekdays in display order, Monday first; 0 is Sunday.
@@ -191,17 +194,34 @@ export function DatePopover({
   const rule = parseRepeat(task.repeat);
   // The day presets and the calendar start from.
   const base = date || today;
-  const [page, setPage] = useState<'main' | 'repeat' | 'custom'>('main');
+  const [page, setPage] = useState<Page>('main');
+  // Pages and months slide in once changed, from the right, or from the left
+  // when the change went back. Each keeps its own direction, so turning the
+  // month doesn't slide the page again.
+  const [paged, setPaged] = useState<'on' | 'back' | null>(null);
+  const [turned, setTurned] = useState<'on' | 'back' | null>(null);
+  function go(next: Page) {
+    setPaged(pages.indexOf(next) < pages.indexOf(page) ? 'back' : 'on');
+    // The page slides as a whole, so its calendar doesn't slide again.
+    setTurned(null);
+    setPage(next);
+  }
   const [custom, setCustom] = useState(() => !!rule && isCustom(rule, base));
   const monthOf = (day: string) => {
     const d = parseDay(day);
     return d.getFullYear() * 12 + d.getMonth();
   };
-  const [month, setMonth] = useState(() => monthOf(base));
+  const [month, setMonthState] = useState(() => monthOf(base));
+  function setMonth(next: number) {
+    if (next === month) return;
+    setTurned(next < month ? 'back' : 'on');
+    setMonthState(next);
+  }
   useDismiss(root, true, close);
   useLayoutEffect(() => {
     const el = root.current!;
-    const { width, height } = el.getBoundingClientRect();
+    // Offset sizes ignore the scale the popover opens with.
+    const { offsetWidth: width, offsetHeight: height } = el;
     const above = anchor.top - height - 6;
     place(
       el,
@@ -313,7 +333,7 @@ export function DatePopover({
     if (option === 'custom') {
       if (!rule) setRule(preset('weekly', base));
       setCustom(true);
-      setPage('custom');
+      go('custom');
       return;
     }
     if (option === 'never') save({ repeat: '' });
@@ -332,7 +352,7 @@ export function DatePopover({
   return (
     <div
       ref={root}
-      className="popover date-popover"
+      className={`popover date-popover${paged ? ` is-paged-${paged}` : ''}`}
       role="dialog"
       aria-label="Date and repeat"
       tabIndex={-1}
@@ -341,11 +361,11 @@ export function DatePopover({
           return;
         e.preventDefault();
         e.stopPropagation();
-        setPage(page === 'custom' ? 'repeat' : 'main');
+        go(page === 'custom' ? 'repeat' : 'main');
       }}
     >
       {page === 'main' && (
-        <>
+        <div className="date-page">
           <div className="date-head">
             <div className="date-head-text">
               <strong
@@ -407,7 +427,11 @@ export function DatePopover({
                 <Chevron d="M9 5l7 7-7 7" />
               </button>
             </div>
-            <div className="calendar-grid">
+            {/* Keyed by month, so each month slides in. */}
+            <div
+              key={month}
+              className={`calendar-grid${turned ? ` is-turned-${turned}` : ''}`}
+            >
               {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => (
                 <span key={i} className="calendar-weekday" aria-hidden="true">
                   {l}
@@ -433,7 +457,7 @@ export function DatePopover({
           </div>
           <div className="date-rule" />
           <div className="date-section">
-            <button className="repeat-row" onClick={() => setPage('repeat')}>
+            <button className="repeat-row" onClick={() => go('repeat')}>
               <RepeatIcon />
               <span className="repeat-row-label">Repeat</span>
               <span className={`repeat-row-value${rule ? ' is-set' : ''}`}>
@@ -442,12 +466,12 @@ export function DatePopover({
               <Chevron d="M9 5l7 7-7 7" />
             </button>
           </div>
-        </>
+        </div>
       )}
       {page === 'repeat' && (
-        <>
+        <div className="date-page">
           <div className="date-page-head">
-            <button aria-label="Back to date" onClick={() => setPage('main')}>
+            <button aria-label="Back to date" onClick={() => go('main')}>
               <Chevron d="M15 5l-7 7 7 7" />
             </button>
             <strong>Repeat</strong>
@@ -482,14 +506,14 @@ export function DatePopover({
               <span>{summary}</span>
             </p>
           )}
-        </>
+        </div>
       )}
       {page === 'custom' && rule && (
-        <>
+        <div className="date-page">
           <div className="date-page-head">
             <button
               aria-label="Back to repeat options"
-              onClick={() => setPage('repeat')}
+              onClick={() => go('repeat')}
             >
               <Chevron d="M15 5l-7 7 7 7" />
             </button>
@@ -593,7 +617,7 @@ export function DatePopover({
               <span>{summary}</span>
             </p>
           </div>
-        </>
+        </div>
       )}
       <div className="date-footer">
         <button onClick={close}>Done</button>

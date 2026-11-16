@@ -31,7 +31,8 @@ export function ContextMenu({
   useLayoutEffect(() => {
     // Keep the menu inside the window, like a native context menu.
     const el = menu.current!;
-    const { width, height } = el.getBoundingClientRect();
+    // Offset sizes ignore the scale the popover opens with.
+    const { offsetWidth: width, offsetHeight: height } = el;
     place(
       el,
       Math.max(4, Math.min(x, innerWidth - width - 4)),

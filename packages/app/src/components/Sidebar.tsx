@@ -54,9 +54,11 @@ export function Sidebar({
     );
   }
   const goalDone = day.goal.filter((t) => t.completed).length;
+  // Each count is keyed by its value, so it pops when it changes.
   const counts: Partial<Record<StaticView, ReactNode>> = {
     inbox: inboxCount > 0 && (
       <span
+        key={inboxCount}
         className="sidebar-count"
         aria-label={`${inboxCount} incomplete tasks`}
       >
@@ -65,6 +67,7 @@ export function Sidebar({
     ),
     today: day.due.length > 0 && (
       <span
+        key={day.due.length}
         className={`sidebar-count${day.due.some((t) => t.date < today) ? ' is-overdue' : ''}`}
         aria-label={`${day.due.length} due`}
       >
@@ -73,6 +76,7 @@ export function Sidebar({
     ),
     goal: day.goal.length > 0 && (
       <span
+        key={`${goalDone}/${day.goal.length}`}
         className={`sidebar-count goal-count${goalDone === day.goal.length ? ' is-complete' : ''}`}
         aria-label={`${goalDone} of ${day.goal.length} done`}
       >

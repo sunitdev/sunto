@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import * as store from '../storage/store';
+import { confirmAction } from '../feedback';
 import type { Task } from '../storage/model';
 import { useDraft } from '../hooks/useDraft';
 import { ContextMenu } from './ContextMenu';
@@ -24,6 +25,30 @@ export function SectionHeader({
   const closePicker = useCallback(() => setPicker(null), []);
   function setIcon(icon: string) {
     if (icon !== section.icon) void store.update(section.id, { icon });
+  }
+  // Asks first, unless the section is empty and unnamed.
+  function remove() {
+    const count = Object.values(store.getSnapshot().state.tasks).filter(
+      (t) =>
+        t.kind === 'task' &&
+        t.section === section.id &&
+        !t.deleted &&
+        !t.trashed,
+    ).length;
+    if (!count && !section.title.trim()) {
+      void store.deleteSection(section.id);
+      return;
+    }
+    confirmAction({
+      title: `Delete “${section.title || 'New Section'}”?`,
+      body: `${
+        count === 0
+          ? 'This section has no to-dos.'
+          : `Its ${count === 1 ? 'to-do stays' : `${count} to-dos stay`} in the project, outside any section.`
+      } The section itself can’t be restored.`,
+      action: 'Delete Section',
+      run: () => void store.deleteSection(section.id),
+    });
   }
   return (
     <div className="section-header">
@@ -91,9 +116,9 @@ export function SectionHeader({
             },
             'divider',
             {
-              label: 'Delete Section',
+              label: 'Delete Section…',
               danger: true,
-              action: () => void store.deleteSection(section.id),
+              action: remove,
             },
           ]}
         />

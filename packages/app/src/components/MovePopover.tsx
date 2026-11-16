@@ -51,10 +51,18 @@ export function MovePopover({
   const root = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState('');
   const [drill, setDrill] = useState<string | null>(null);
+  // An area's projects slide in from the right, and the lists back from the
+  // left, once one has been opened.
+  const [drilled, setDrilled] = useState(false);
+  function open(area: string | null) {
+    setDrilled(true);
+    setDrill(area);
+  }
   useDismiss(root, true, close);
   useLayoutEffect(() => {
     const el = root.current!;
-    const { width, height } = el.getBoundingClientRect();
+    // Offset sizes ignore the scale the popover opens with.
+    const { offsetWidth: width, offsetHeight: height } = el;
     const above = anchor.top - height - 6;
     place(
       el,
@@ -105,7 +113,7 @@ export function MovePopover({
             return row(a, {
               current: a.id === currentArea,
               drill: opens,
-              pick: opens ? () => setDrill(a.id) : row(a).pick,
+              pick: opens ? () => open(a.id) : row(a).pick,
             });
           }),
         ];
@@ -142,9 +150,12 @@ export function MovePopover({
           }}
         />
       </div>
-      <div className="move-rows">
+      <div
+        key={drill ?? ''}
+        className={`move-rows${drilled ? (drill ? ' slide-in' : ' slide-back') : ''}`}
+      >
         {area && (
-          <button className="move-back" onClick={() => setDrill(null)}>
+          <button className="move-back" onClick={() => open(null)}>
             <Chevron d="M15 5l-7 7 7 7" />
             {area.title || untitled(area)}
           </button>

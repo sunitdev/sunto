@@ -1,5 +1,6 @@
 import type { RefObject } from 'react';
 import * as store from '../storage/store';
+import { trashTodo } from '../feedback';
 import { Plus, ToolbarIcon } from './icons';
 
 // The add button, if given, and in a project, a button adding a section. While
@@ -91,9 +92,7 @@ export function Footer({
               </button>
               <button
                 className="bar-button bar-danger"
-                onClick={() =>
-                  closeEditor((id) => void store.setTrashed(id, true))
-                }
+                onClick={() => closeEditor(trashTodo)}
               >
                 <ToolbarIcon d="M4.5 7h15M9.5 7V4.8h5V7M6.8 7l.8 12.2a1.6 1.6 0 0 0 1.6 1.5h5.6a1.6 1.6 0 0 0 1.6-1.5L17.2 7" />
                 Delete
@@ -128,7 +127,7 @@ export function Footer({
             className="footer-button"
             aria-label="Move to Trash"
             title="Move to Trash"
-            onClick={() => closeEditor((id) => void store.setTrashed(id, true))}
+            onClick={() => closeEditor(trashTodo)}
           >
             <ToolbarIcon d="M4.5 7h15M9.5 7V4.8h5V7M6.8 7l.8 12.2a1.6 1.6 0 0 0 1.6 1.5h5.6a1.6 1.6 0 0 0 1.6-1.5L17.2 7" />
           </button>

@@ -34,7 +34,8 @@ export function EmojiPicker({
   useDismiss(root, true, close);
   useLayoutEffect(() => {
     const el = root.current!;
-    const { width, height } = el.getBoundingClientRect();
+    // Offset sizes ignore the scale the popover opens with.
+    const { offsetWidth: width, offsetHeight: height } = el;
     place(
       el,
       Math.max(8, Math.min(anchor.left, innerWidth - width - 8)),

@@ -16,6 +16,9 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   --accent: #0a6cf0;
+  /* Things enter easing out, and spring back from a press. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --gutter: max(48px, calc((100% - 880px) / 2));
   /* Apple's system palette. */
   --bg: #fff;
@@ -114,7 +117,8 @@ button {
     box-shadow 0.12s ease,
     background-color 0.15s ease,
     color 0.15s ease,
-    opacity 0.15s ease;
+    opacity 0.15s ease,
+    transform 0.25s var(--spring);
 }
 /* Buttons tint under the pointer, and dim while pressed. */
 @media (hover: hover) {
