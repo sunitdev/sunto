@@ -152,6 +152,19 @@ test('edits made in the app win over older ones, and the server builds on them',
   assert.equal(seen.notes, 'Use rainwater');
 });
 
+test('moving a to-do past the day of its goal takes it out of the goal', async () => {
+  const [milk] = (await sunto.call('sunto_search', { query: 'milk' })).todos;
+  const goal = async () =>
+    (await sunto.call('sunto_list_todos', { view: 'goal' })).todos.map(
+      (t) => t.title,
+    );
+  await sunto.call('sunto_update_todo', { id: milk.id, date: milk.planned });
+  assert.deepEqual(await goal(), ['Buy milk']);
+  await sunto.call('sunto_update_todo', { id: milk.id, date: '2999-01-01' });
+  assert.deepEqual(await goal(), []);
+  assert.equal(appSync().tasks[milk.id].planned, '');
+});
+
 test('completing a repeating to-do adds the next one', async () => {
   const [plants] = (await sunto.call('sunto_search', { query: 'plants' }))
     .todos;

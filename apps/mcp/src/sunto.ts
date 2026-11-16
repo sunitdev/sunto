@@ -11,6 +11,7 @@ import {
   newEpic,
   newList,
   newTask,
+  rescheduling,
   sectionDeletion,
   trashing,
   type Changes,
@@ -261,7 +262,10 @@ export function updateTodo(
   };
   if ((fields.repeat ?? t.repeat) && !(fields.date ?? t.date))
     throw Error('A repeating to-do needs a date');
-  return [[id, fields]];
+  // An explicit plannedToday wins over a new date.
+  return [
+    [id, input.plannedToday === undefined ? rescheduling(t, fields) : fields],
+  ];
 }
 
 export const completeTodos = (

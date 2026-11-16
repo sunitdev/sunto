@@ -63,6 +63,17 @@ export const trashing = (trashed: boolean): Partial<Fields> =>
   trashed
     ? { trashed, trashedAt: Date.now() }
     : { trashed, trashedAt: 0, deletedFrom: '' };
+// Moving a to-do's date past the day it was planned for, or removing it,
+// takes it out of that day's goal, which holds only to-dos due by then.
+export const rescheduling = (
+  task: Fields,
+  patch: Partial<Fields>,
+): Partial<Fields> =>
+  patch.date !== undefined &&
+  task.planned &&
+  !(patch.date && patch.date <= task.planned)
+    ? { ...patch, planned: '' }
+    : patch;
 // Completing a repeating to-do adds its next occurrence in the same place,
 // and the completed one stops repeating.
 export function completion(

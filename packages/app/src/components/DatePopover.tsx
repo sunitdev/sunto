@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import * as store from '../storage/store';
 import type { Fields, Task } from '../storage/model';
+import { rescheduling } from '../storage/ops';
 import {
   addDays,
   dayKey,
@@ -245,7 +246,8 @@ export function DatePopover({
       : isWorkdays(rule)
         ? 'weekdays'
         : rule.freq;
-  const save = (patch: Partial<Fields>) => void store.update(task.id, patch);
+  const save = (patch: Partial<Fields>) =>
+    void store.update(task.id, rescheduling(task, patch));
   // A preset follows the date to its new day.
   function setDate(day: string) {
     save(
