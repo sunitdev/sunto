@@ -32,8 +32,41 @@
 .sidebar-area {
   margin-top: 16px;
 }
-.sidebar-area > .sidebar-item:first-child {
+.sidebar-area-row {
+  display: flex;
+  align-items: center;
+}
+.sidebar-area-row .sidebar-item {
+  flex: 1;
+  min-width: 0;
   font-weight: 700;
+}
+/* The arrow before an area's name folds its projects away. */
+.area-toggle {
+  flex: none;
+  width: 18px;
+  height: 30px;
+  margin: 0 -2px 0 -6px;
+  border-radius: 5px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.area-toggle svg {
+  width: 10px;
+  height: 10px;
+  stroke-width: 3.2;
+  transition: transform 0.18s ease;
+}
+.area-toggle[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+.sidebar-area-projects {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 16px;
 }
 .sidebar-group.is-drop {
   background: var(--drop-fill);
@@ -215,6 +248,31 @@
   }
   .sidebar-area {
     margin-top: 18px;
+  }
+  /* On the phone, the arrow sits at the end of the area's row. */
+  .sidebar-area-row {
+    position: relative;
+  }
+  .sidebar-area-row .sidebar-item {
+    padding-right: 46px;
+  }
+  .area-toggle {
+    position: absolute;
+    right: 2px;
+    top: 1px;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    border-radius: 10px;
+    color: var(--heading);
+  }
+  .area-toggle svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2.8;
+  }
+  .sidebar-area-projects {
+    padding-left: 22px;
   }
   .sidebar-footer {
     position: absolute;

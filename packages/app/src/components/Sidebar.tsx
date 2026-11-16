@@ -3,6 +3,7 @@ import * as store from '../storage/store';
 import type { Task } from '../storage/model';
 import type { Day, Library } from '../storage/selectors';
 import { taskDropTarget } from '../drag';
+import { useCollapsedAreas } from '../hooks/useCollapsedAreas';
 import { titles, untitled, type StaticView, type View } from '../views';
 import { ListIcon, SettingsIcon, ViewIcon } from './icons';
 import { NewListMenu } from './NewListMenu';
@@ -39,6 +40,7 @@ export function Sidebar({
   const [drop, setDrop] = useState<string | null>(null);
   // The list ('' for the Inbox) that a dragged to-do would move to.
   const [taskDrop, setTaskDrop] = useState<string | null>(null);
+  const [collapsed, toggleArea] = useCollapsedAreas();
   function taskTarget(list: string) {
     return taskDropTarget(
       (over) =>
@@ -161,16 +163,49 @@ export function Sidebar({
             {looseProjects.map(listButton)}
           </div>
         )}
-        {areas.map((area) => (
-          <div
-            key={area.id}
-            className={`sidebar-group sidebar-area${drop === area.id ? ' is-drop' : ''}`}
-            {...dropZone(area.id)}
-          >
-            {listButton(area)}
-            {projects.filter((p) => areaOf(p) === area.id).map(listButton)}
-          </div>
-        ))}
+        {areas.map((area) => {
+          const open = !collapsed.has(area.id);
+          const title = area.title || untitled(area);
+          return (
+            <div
+              key={area.id}
+              className={`sidebar-group sidebar-area${drop === area.id ? ' is-drop' : ''}`}
+              {...dropZone(area.id)}
+            >
+              <div className="sidebar-area-row">
+                <button
+                  className="area-toggle"
+                  aria-label={`${open ? 'Collapse' : 'Expand'} ${title}`}
+                  aria-expanded={open}
+                  onClick={() => toggleArea(area.id)}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                {listButton(area)}
+              </div>
+              {open && (
+                <div
+                  className="sidebar-area-projects"
+                  role="group"
+                  aria-label={`${title} projects`}
+                >
+                  {projects
+                    .filter((p) => areaOf(p) === area.id)
+                    .map(listButton)}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </nav>
       <div className="sidebar-footer">
         <NewListMenu create={addList} />

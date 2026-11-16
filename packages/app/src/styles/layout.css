@@ -100,7 +100,7 @@ h1 {
 }
 /* A board spans the window, scrolling sideways to the right edge. */
 .view-board {
-  --gutter: 28px;
+  --gutter: 40px;
 }
 .view-board .task-scroll {
   padding-right: 0;
