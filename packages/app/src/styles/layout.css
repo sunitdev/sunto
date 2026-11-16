@@ -107,9 +107,11 @@ h1 {
   padding-right: 0;
   padding-bottom: 0;
 }
-/* The board scrolls itself, so its sideways scrollbar stays at the bottom. */
+/* The board fills the height below the header and scrolls itself, so its
+   sideways scrollbar stays at the bottom of the window however short its
+   columns are. */
 .view-board .board {
-  flex: 0 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   overflow: auto;
 }
