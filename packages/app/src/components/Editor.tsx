@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import * as store from '../storage/store';
 import type { Task } from '../storage/model';
 import { useDraft } from '../hooks/useDraft';
@@ -42,6 +43,12 @@ export function Editor({
   const due = task.date ? dueLabel(task.date, today) : undefined;
   const { draft, latest, change, flush } = useDraft(task);
   const { title, notes } = draft;
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  // A textarea focuses with the caret at its start; editing picks up at the end.
+  useEffect(() => {
+    const el = titleRef.current;
+    el?.setSelectionRange(el.value.length, el.value.length);
+  }, []);
   function done() {
     flush();
     if (!latest.current.title.trim())
@@ -52,12 +59,20 @@ export function Editor({
     <div className="task-editor">
       <div className="task-row">
         <Check task={task} onToggle={onToggle} />
-        <input
+        {/* A textarea, so a long title wraps; Enter finishes instead of
+            adding a line, and pasted line breaks become spaces. */}
+        <textarea
+          ref={titleRef}
           autoFocus
+          className="editor-title"
           aria-label="To-do title"
           placeholder="New To-Do"
+          rows={1}
+          enterKeyHint="done"
           value={title}
-          onChange={(e) => change('title', e.target.value)}
+          onChange={(e) =>
+            change('title', e.target.value.replace(/\r?\n/g, ' '))
+          }
           onKeyDown={(e) => {
             if (
               !e.nativeEvent.isComposing &&
@@ -70,6 +85,7 @@ export function Editor({
         />
       </div>
       <textarea
+        className="editor-notes"
         aria-label="Notes"
         placeholder="Notes"
         rows={3}

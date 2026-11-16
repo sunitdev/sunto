@@ -262,10 +262,13 @@
   background: var(--card);
   box-shadow: var(--shadow);
 }
-.task-editor input {
+.editor-title {
   flex: 1;
   min-width: 0;
   border: 0;
+  resize: none;
+  field-sizing: content;
+  overflow-wrap: anywhere;
   background: transparent;
   padding: 4px 0;
   font-size: 14px;
@@ -273,7 +276,7 @@
   font-weight: 500;
   color: inherit;
 }
-.task-editor textarea {
+.editor-notes {
   display: block;
   width: calc(100% - 28px);
   margin: 4px 0 0 28px;
@@ -284,7 +287,9 @@
   color: inherit;
   font-size: 13px;
   line-height: 19px;
-  height: 38px;
+  field-sizing: content;
+  min-height: 38px;
+  overflow-wrap: anywhere;
 }
 .editor-foot {
   margin-top: 10px;
@@ -346,8 +351,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.task-editor input,
-.task-editor textarea {
+.editor-title,
+.editor-notes {
   outline: none;
 }
 .board {
@@ -452,16 +457,16 @@
   padding: 8px 10px;
   border-radius: 10px;
 }
-.board .task-editor input {
+.board .editor-title {
   font-size: 13px;
   font-weight: 400;
 }
-.board .task-editor textarea {
+.board .editor-notes {
   width: calc(100% - 26px);
   margin: 2px 0 0 26px;
   font-size: 12px;
   line-height: 18px;
-  height: 36px;
+  min-height: 36px;
 }
 .board .editor-foot {
   margin-top: 8px;
@@ -705,18 +710,18 @@
   .is-editing .task-item:not(.task-item--editing) {
     opacity: 0.3;
   }
-  .task-editor input {
+  .editor-title {
     padding: 9px 0;
     font-size: 17px;
     line-height: 22px;
     font-weight: 600;
   }
-  .task-editor textarea {
+  .editor-notes {
     width: calc(100% - 34px);
     margin-left: 34px;
     font-size: 15px;
     line-height: 21px;
-    height: 42px;
+    min-height: 42px;
   }
   .editor-pills {
     flex-wrap: wrap;
