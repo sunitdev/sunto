@@ -208,7 +208,7 @@ test('deleting a project trashes its to-dos, and Put Back returns them to the In
   });
   const section = await store.addList('section', project);
   await store.update(open, { section });
-  await store.deleteProject(project);
+  await store.deleteList(project);
   let { tasks } = store.getSnapshot().state;
   assert.equal(tasks[project].deleted, true);
   assert.equal(tasks[section].deleted, true);
@@ -357,7 +357,7 @@ test('epics take colours in turn, and a to-do leaves its epic when deleted, move
   assert.equal(tasks[kept].list, project);
   assert.equal(tasks[moved].epic, '');
   await store.update(kept, { title: 'Kept', epic: second });
-  await store.deleteProject(project);
+  await store.deleteList(project);
   ({ tasks } = store.getSnapshot().state);
   assert.equal(tasks[second].deleted, true);
   assert.equal(tasks[kept].trashed, true);
