@@ -1,5 +1,6 @@
 import { useCallback, useState, useSyncExternalStore } from 'react';
 import * as store from './storage/store';
+import { native } from './storage/driver';
 import type { Task } from './storage/model';
 import { dayKey } from './storage/dates';
 import {
@@ -35,12 +36,12 @@ import { GoalCard, Planner, PlanPrompt } from './components/Goal';
 import { InboxIcon, ToolbarIcon, ViewIcon } from './components/icons';
 import { ListHeader } from './components/ListHeader';
 import { MovePopover } from './components/MovePopover';
+import { Settings, Welcome } from './components/Settings';
 import { Sidebar } from './components/Sidebar';
-import { StoragePanel } from './components/StoragePanel';
 import { TaskList } from './components/TaskList';
 
 export function App() {
-  const { state, ready, error, syncStatus, folder } = useSyncExternalStore(
+  const { state, ready, error, folder } = useSyncExternalStore(
     store.subscribe,
     store.getSnapshot,
   );
@@ -56,7 +57,6 @@ export function App() {
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(
     null,
   );
-  const [settings, setSettings] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   // The edited to-do's list, date and epic pickers, and the bounds of the
   // button opening each.
@@ -93,13 +93,18 @@ export function App() {
     project && epicsOf(project.id).some((e) => e.id === epicFilter[project.id])
       ? epicFilter[project.id]
       : '';
-  const tasks = visibleTasks(library, view, {
-    list: openList?.id ?? '',
-    epic,
-    today,
-    editing,
-    lingering,
-  });
+  const tasks =
+    view === 'settings'
+      ? []
+      : visibleTasks(library, view, {
+          list: openList?.id ?? '',
+          epic,
+          today,
+          editing,
+          lingering,
+        });
+  // The native apps keep their to-dos in a sync folder, which they need first.
+  const welcome = native && ready && !folder;
   // Today's Goal shows its to-dos once the day is planned.
   const planned = view === 'goal' && !planning && day.goal.length > 0;
   const groups = (
@@ -136,7 +141,7 @@ export function App() {
     tasks: shown,
     selected,
     select: setSelected,
-    paused: !!editing || !!menu || (view === 'goal' && !!planning),
+    paused: !!editing || !!menu || (view === 'goal' && !!planning) || welcome,
     remove,
     edit: setEditing,
   });
@@ -274,15 +279,6 @@ export function App() {
     onDate: (_task: Task, anchor: DOMRect) => setDating(anchor),
     onEpic: (_task: Task, anchor: DOMRect) => setPicking(anchor),
   };
-  const settingsToggle = (
-    <button
-      className="settings-toggle"
-      aria-label="Storage settings"
-      onClick={() => setSettings(!settings)}
-    >
-      ···
-    </button>
-  );
   return (
     <div
       className={`inbox-app${editing ? ' is-editing' : ''}${atHome ? ' is-home' : ''}${planning ? ' is-planning' : ''}`}
@@ -314,14 +310,11 @@ export function App() {
             area={areaOf(openList)}
             addSection={addSection}
             deleteProject={() => setConfirmDelete(openList.id)}
-          >
-            {settingsToggle}
-          </ListHeader>
+          />
         ) : (
           <header className="inbox-header">
             <ViewIcon view={view as StaticView} />
             <h1>{titles[view as StaticView]}</h1>
-            {settingsToggle}
           </header>
         )}
         {project && (
@@ -337,14 +330,10 @@ export function App() {
             {error} <button onClick={() => void store.retry()}>Retry</button>
           </div>
         )}
-        {settings && (
-          <StoragePanel
-            syncStatus={syncStatus}
-            folder={folder}
-            close={() => setSettings(false)}
-          />
-        )}
         <div className="task-scroll">
+          {view === 'settings' && (
+            <Settings folder={folder} target={target} setTarget={setTarget} />
+          )}
           {areaProjects.length > 0 && (
             <AreaProjects
               projects={areaProjects}
@@ -411,14 +400,17 @@ export function App() {
               {...itemProps}
             />
           )}
-          {tasks.length === 0 && !openList && view !== 'goal' && (
-            <div className="empty-state">
-              <InboxIcon empty />
-              <span>
-                {ready ? empties[view as StaticView] : 'Loading tasks…'}
-              </span>
-            </div>
-          )}
+          {tasks.length === 0 &&
+            !openList &&
+            view !== 'goal' &&
+            view !== 'settings' && (
+              <div className="empty-state">
+                <InboxIcon empty />
+                <span>
+                  {ready ? empties[view as StaticView] : 'Loading tasks…'}
+                </span>
+              </div>
+            )}
         </div>
         <div className="bottom-fade" aria-hidden="true" />
         <Footer
@@ -428,7 +420,9 @@ export function App() {
           phone={phone}
           inTrash={view === 'trash'}
           ready={ready}
-          add={() => void addTask()}
+          add={
+            view === 'settings' && !atHome ? undefined : () => void addTask()
+          }
           addSection={project && addSection}
           move={setMoving}
           closeEditor={closeEditor}
@@ -518,6 +512,7 @@ export function App() {
           cancel={() => setConfirmDelete(null)}
         />
       )}
+      {welcome && <Welcome />}
     </div>
   );
 }

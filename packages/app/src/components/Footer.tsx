@@ -2,10 +2,10 @@ import type { RefObject } from 'react';
 import * as store from '../storage/store';
 import { Plus, ToolbarIcon } from './icons';
 
-// The add button, and in a project, a button adding a section. While editing,
-// buttons that move the to-do to another list, and that close the editor and
-// move the to-do to the Trash (or back out of it); on the phone they are
-// labelled, beside a button that closes the editor.
+// The add button, if given, and in a project, a button adding a section. While
+// editing, buttons that move the to-do to another list, and that close the
+// editor and move the to-do to the Trash (or back out of it); on the phone
+// they are labelled, beside a button that closes the editor.
 export function Footer({
   footerRef,
   addButtonRef,
@@ -24,7 +24,7 @@ export function Footer({
   phone: boolean;
   inTrash: boolean;
   ready: boolean;
-  add: () => void;
+  add?: () => void;
   addSection?: () => void;
   move: (anchor: DOMRect) => void;
   closeEditor: (then?: (id: string) => void) => void;
@@ -33,16 +33,18 @@ export function Footer({
     <footer className="inbox-footer" ref={footerRef}>
       {!editing ? (
         <>
-          <button
-            ref={addButtonRef}
-            className="add-button"
-            disabled={!ready}
-            aria-label="New to-do"
-            title="New To-Do"
-            onClick={add}
-          >
-            <Plus />
-          </button>
+          {add && (
+            <button
+              ref={addButtonRef}
+              className="add-button"
+              disabled={!ready}
+              aria-label="New to-do"
+              title="New To-Do"
+              onClick={add}
+            >
+              <Plus />
+            </button>
+          )}
           {addSection && (
             <button
               className="footer-button"

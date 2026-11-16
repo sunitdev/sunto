@@ -16,7 +16,7 @@ export function NewListMenu({
     create(kind);
   }
   return (
-    <div className="sidebar-footer" ref={root}>
+    <div ref={root}>
       <button
         className="new-list"
         aria-haspopup="true"

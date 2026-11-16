@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useState } from 'react';
 import * as store from '../storage/store';
 import type { Task } from '../storage/model';
 import { useDraft } from '../hooks/useDraft';
@@ -18,7 +18,6 @@ export function ListHeader({
   area,
   addSection,
   deleteProject,
-  children,
 }: {
   list: Task;
   progress: number;
@@ -26,7 +25,6 @@ export function ListHeader({
   area: string;
   addSection: () => void;
   deleteProject: () => void;
-  children: ReactNode;
 }) {
   const { draft, change } = useDraft(list);
   const [picker, setPicker] = useState<DOMRect | null>(null);
@@ -76,7 +74,6 @@ export function ListHeader({
             <MoreIcon />
           </button>
         )}
-        {children}
       </header>
       <textarea
         className="list-notes"

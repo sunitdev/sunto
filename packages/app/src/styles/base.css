@@ -43,6 +43,7 @@
   --drop-fill: rgb(10 108 240 / 8%);
   --drop-hot: rgb(10 108 240 / 14%);
   --col: #f2f2f7;
+  --group: rgb(120 120 128 / 6%);
   --kcard: #fff;
   --kshadow: 0 0 0 0.5px rgb(0 0 0 / 7%), 0 1px 3px rgb(0 0 0 / 7%);
   /* Popovers and menus are translucent, over a blur. */
@@ -82,6 +83,7 @@
     --drop-fill: rgb(75 161 255 / 12%);
     --drop-hot: rgb(75 161 255 / 24%);
     --col: rgb(255 255 255 / 4.5%);
+    --group: rgb(255 255 255 / 5%);
     --kcard: #363638;
     --kshadow: 0 0 0 0.5px rgb(255 255 255 / 8%), 0 1px 2px rgb(0 0 0 / 30%);
     --pop: rgb(50 50 52 / 86%);

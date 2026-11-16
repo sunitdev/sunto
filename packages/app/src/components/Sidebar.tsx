@@ -4,7 +4,7 @@ import type { Task } from '../storage/model';
 import type { Day, Library } from '../storage/selectors';
 import { taskDropTarget } from '../drag';
 import { titles, untitled, type StaticView, type View } from '../views';
-import { ListIcon, ViewIcon } from './icons';
+import { ListIcon, SettingsIcon, ViewIcon } from './icons';
 import { NewListMenu } from './NewListMenu';
 
 export function Sidebar({
@@ -173,7 +173,18 @@ export function Sidebar({
           </div>
         ))}
       </nav>
-      <NewListMenu create={addList} />
+      <div className="sidebar-footer">
+        <NewListMenu create={addList} />
+        <button
+          className="settings-open"
+          aria-label="Settings"
+          title="Settings"
+          aria-current={view === 'settings' ? 'page' : undefined}
+          onClick={() => show('settings')}
+        >
+          <SettingsIcon />
+        </button>
+      </div>
     </aside>
   );
 }

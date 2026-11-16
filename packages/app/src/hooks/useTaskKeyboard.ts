@@ -56,7 +56,7 @@ export function useTaskKeyboard({
       const target = e.target as Element;
       if (
         target.closest(
-          'input, textarea, .storage-panel, .popover, .dialog, .context-menu',
+          'input, textarea, .settings, .popover, .dialog, .context-menu',
         )
       )
         return;

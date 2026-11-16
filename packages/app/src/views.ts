@@ -2,7 +2,8 @@ import type { CSSProperties } from 'react';
 import type { Task } from './storage/model';
 import { daysBetween, parseDay } from './storage/dates';
 
-export type StaticView = 'inbox' | 'today' | 'goal' | 'logbook' | 'trash';
+export type StaticView =
+  'inbox' | 'today' | 'goal' | 'logbook' | 'trash' | 'settings';
 // Any other view is the id of a project or area.
 export type View = StaticView | (string & {});
 export const titles: Record<StaticView, string> = {
@@ -11,6 +12,7 @@ export const titles: Record<StaticView, string> = {
   goal: 'Today’s Goal',
   logbook: 'Logbook',
   trash: 'Trash',
+  settings: 'Settings',
 };
 export const isStatic = (view: View): view is StaticView =>
   Object.hasOwn(titles, view);
@@ -25,6 +27,7 @@ export const empties: Record<StaticView, string> = {
   goal: '',
   logbook: 'Completed to-dos will appear here',
   trash: 'Trash is empty',
+  settings: '',
 };
 const DAY = 86400000;
 export function dayName(time: number, short: boolean) {

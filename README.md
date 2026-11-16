@@ -22,7 +22,7 @@ On first iPhone install, trust the developer in **Settings → General → VPN &
 
 ## Sync
 
-Create a **Sunto** folder in iCloud Drive, then choose it in **··· → Storage settings** on each device.
+Create a **Sunto** folder in iCloud Drive, then choose it when Sunto first opens on each device (or later in **Settings**).
 
 ## Develop
 

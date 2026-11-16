@@ -80,16 +80,6 @@ h1 {
   width: 20px;
   height: 20px;
 }
-.settings-toggle {
-  position: absolute;
-  right: 20px;
-  top: 16px;
-  font-size: 22px;
-  color: var(--icon);
-  width: 36px;
-  height: 32px;
-  border-radius: 8px;
-}
 .task-scroll {
   flex: 1;
   min-height: 0;
@@ -213,9 +203,6 @@ h1 {
   .list-header {
     padding-top: calc(var(--top) + 48px);
     padding-bottom: 6px;
-  }
-  .settings-toggle {
-    top: calc(var(--top) + 3px);
   }
   .task-scroll {
     padding: 0 var(--gutter) calc(130px + env(safe-area-inset-bottom));

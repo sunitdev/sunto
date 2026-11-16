@@ -29,7 +29,7 @@ export function PlanPrompt({
     </div>
   );
 }
-function Stepper({
+export function Stepper({
   value,
   change,
 }: {
