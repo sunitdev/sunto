@@ -205,6 +205,9 @@ export function DatePopover({
     // The page slides as a whole, so its calendar doesn't slide again.
     setTurned(null);
     setPage(next);
+    // The button that changed the page goes with it; keeping focus in the
+    // popover lets Escape step back a page instead of closing it.
+    root.current?.focus();
   }
   const [custom, setCustom] = useState(() => !!rule && isCustom(rule, base));
   const monthOf = (day: string) => {
