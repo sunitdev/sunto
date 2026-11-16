@@ -1,5 +1,9 @@
 /* Today's Goal: the prompt to plan the day, the planner, and the goal's
    progress. */
+/* Its to-dos glide by their place in the scroll area. */
+.view-goal .task-scroll {
+  position: relative;
+}
 .plan-card {
   margin: 0 -16px;
   border-radius: 12px;

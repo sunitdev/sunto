@@ -148,6 +148,7 @@ export function TaskList({
   return groups.map((group) => (
     <section
       key={group.key}
+      data-group={group.key}
       className={`task-group${group.section ? ' section-group' : ''}${group.list !== undefined ? ' list-group' : ''}`}
     >
       {group.label && <h2>{group.label}</h2>}

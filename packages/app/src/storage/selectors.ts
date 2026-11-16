@@ -176,3 +176,19 @@ export function groupByList(tasks: Task[], { order, listOf }: Library) {
     }))
     .filter((g) => g.tasks.length > 0);
 }
+
+// The goal groups its open to-dos by list, and gathers the completed ones at
+// the end in the order they were completed, so opening one again returns it
+// to its list.
+export function groupGoal(tasks: Task[], library: Library): Group[] {
+  const done = tasks
+    .filter((t) => t.completed)
+    .sort((a, b) => completedTime(a) - completedTime(b));
+  return [
+    ...groupByList(
+      tasks.filter((t) => !t.completed),
+      library,
+    ),
+    ...(done.length ? [{ key: 'completed', tasks: done }] : []),
+  ];
+}

@@ -1,4 +1,4 @@
-import { useCallback, useState, useSyncExternalStore } from 'react';
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import * as store from './storage/store';
 import { native } from './storage/driver';
 import { confirmAction, trashTodo } from './feedback';
@@ -8,12 +8,14 @@ import {
   completedTime,
   dayPlan,
   groupByList,
+  groupGoal,
   groupTasks,
   organize,
   visibleTasks,
 } from './storage/selectors';
 import { useDailyTarget } from './hooks/useDailyTarget';
 import { useEditor } from './hooks/useEditor';
+import { useGlide } from './hooks/useGlide';
 import { usePhone } from './hooks/usePhone';
 import { useSync } from './hooks/useSync';
 import { useTaskKeyboard } from './hooks/useTaskKeyboard';
@@ -106,18 +108,27 @@ export function App() {
         });
   // The native apps keep their to-dos in a sync folder, which they need first.
   const welcome = native && ready && !folder;
-  // Today's Goal shows its to-dos once the day is planned.
+  // Today's Goal shows its to-dos once the day is planned, and glides them
+  // to the end as they are completed and back when opened again.
   const planned = view === 'goal' && !planning && day.goal.length > 0;
+  const scroll = useRef<HTMLDivElement>(null);
+  useGlide(scroll, planned);
   const groups = (
-    view === 'today' || planned
+    view === 'today'
       ? groupByList(tasks, library)
-      : view === 'goal'
-        ? []
-        : groupTasks(tasks, view, project ? sectionsOf(project.id) : [])
+      : planned
+        ? groupGoal(tasks, library)
+        : view === 'goal'
+          ? []
+          : groupTasks(tasks, view, project ? sectionsOf(project.id) : [])
   ).map((group) => ({
     ...group,
     label:
-      view === 'logbook' ? dayName(completedTime(group.tasks[0]), false) : '',
+      view === 'logbook'
+        ? dayName(completedTime(group.tasks[0]), false)
+        : group.key === 'completed'
+          ? 'Completed'
+          : '',
   }));
   // The to-dos in display order, which sections change.
   const shown = groups.flatMap((g) => g.tasks);
@@ -372,7 +383,7 @@ export function App() {
           </div>
         )}
         {/* Keyed by view, so each view starts at the top and fades in. */}
-        <div key={`scroll-${view}`} className="task-scroll">
+        <div key={`scroll-${view}`} ref={scroll} className="task-scroll">
           {view === 'settings' && (
             <Settings folder={folder} target={target} setTarget={setTarget} />
           )}
