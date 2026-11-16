@@ -1,4 +1,5 @@
 import type { Task } from '../storage/model';
+import { longPress } from '../longPress';
 import { untitled } from '../views';
 import { ListIcon } from './icons';
 
@@ -25,6 +26,7 @@ export function AreaProjects({
               e.preventDefault();
               openMenu({ id: p.id, x: e.clientX, y: e.clientY });
             }}
+            {...longPress((x, y) => openMenu({ id: p.id, x, y }))}
           >
             <ListIcon list={p} progress={progress(p.id)} />
             {p.title || untitled(p)}

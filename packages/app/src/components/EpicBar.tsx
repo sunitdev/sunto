@@ -5,6 +5,7 @@ import type { Task } from '../storage/model';
 import type { Library } from '../storage/selectors';
 import { taskDropTarget } from '../drag';
 import { useDraft } from '../hooks/useDraft';
+import { longPress } from '../longPress';
 import { usePhone } from '../hooks/usePhone';
 import { epicStyle } from '../views';
 import { ContextMenu } from './ContextMenu';
@@ -15,7 +16,8 @@ const colorNames = ['Red', 'Orange', 'Green', 'Blue', 'Purple', 'Pink'];
 // A project's epics as chips that filter its to-dos to one epic, each with
 // its count of completed to-dos. Double-click renames an epic, right-click
 // sets its colour or deletes it, and dropping a to-do on one assigns it. On
-// the phone, a button beside the chosen epic opens the same menu.
+// the phone, holding a finger on an epic, or a button beside the chosen one,
+// opens the same menu.
 export function EpicBar({
   project,
   library,
@@ -85,6 +87,7 @@ export function EpicBar({
                 e.preventDefault();
                 setMenu({ id: epic.id, x: e.clientX, y: e.clientY });
               }}
+              {...longPress((x, y) => setMenu({ id: epic.id, x, y }))}
               {...taskDropTarget(
                 (hover) =>
                   setOver((current) =>

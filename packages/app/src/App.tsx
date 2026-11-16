@@ -325,6 +325,7 @@ export function App() {
     });
   }
   const menuTask = menu && tasks.find((t) => t.id === menu.id);
+  const menuSections = menuTask ? sectionsOf(menuTask.list) : [];
   const movingTask = editing ? state.tasks[editing] : undefined;
   const menuList = menu && lists[menu.id];
   const areaProjects =
@@ -554,6 +555,28 @@ export function App() {
                   },
                 ]
               : [
+                  // In a project with sections, the to-do can change section
+                  // without being dragged, which the phone can't do.
+                  ...(view !== 'logbook' && menuSections.length
+                    ? [
+                        { heading: 'Section' },
+                        {
+                          label: 'No Section',
+                          checked: !menuSections.some(
+                            (s) => s.id === menuTask.section,
+                          ),
+                          action: () =>
+                            void store.update(menuTask.id, { section: '' }),
+                        },
+                        ...menuSections.map((s) => ({
+                          label: s.title || 'New Section',
+                          checked: menuTask.section === s.id,
+                          action: () =>
+                            void store.update(menuTask.id, { section: s.id }),
+                        })),
+                        'divider' as const,
+                      ]
+                    : []),
                   {
                     label: 'Move to Trash',
                     danger: true,

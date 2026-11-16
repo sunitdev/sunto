@@ -3,6 +3,7 @@ import * as store from '../storage/store';
 import type { Task } from '../storage/model';
 import type { Day, Library } from '../storage/selectors';
 import { taskDropTarget } from '../drag';
+import { longPress } from '../longPress';
 import { useCollapsedAreas } from '../hooks/useCollapsedAreas';
 import { titles, untitled, type StaticView, type View } from '../views';
 import { ListIcon, SettingsIcon, ViewIcon } from './icons';
@@ -133,6 +134,7 @@ export function Sidebar({
           e.preventDefault();
           openMenu({ id: list.id, x: e.clientX, y: e.clientY });
         }}
+        {...longPress((x, y) => openMenu({ id: list.id, x, y }))}
         onClick={() => show(list.id)}
       >
         <ListIcon list={list} progress={progress(list.id)} />

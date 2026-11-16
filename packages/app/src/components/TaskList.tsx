@@ -2,6 +2,7 @@ import { useState, type RefObject } from 'react';
 import type { Task } from '../storage/model';
 import { completedTime, type Group, type Library } from '../storage/selectors';
 import { startTaskDrag } from '../drag';
+import { longPress } from '../longPress';
 import { dayName, dueLabel, epicStyle, untitled, type View } from '../views';
 import { Check } from './Check';
 import { Editor } from './Editor';
@@ -27,6 +28,7 @@ export type ItemProps = {
 };
 // One to-do, or its editor. On desktop, to-dos in the Inbox, projects and
 // areas can be dragged onto another list, or onto an epic of their project.
+// Its menu opens with a right-click, or by holding a finger on it.
 export function TaskItem({
   task,
   view,
@@ -89,6 +91,7 @@ export function TaskItem({
             e.preventDefault();
             onMenu(task, e.clientX, e.clientY);
           }}
+          {...longPress((x, y) => onMenu(task, x, y))}
         >
           <Check task={task} onToggle={onToggle} />
           {view === 'logbook' && task.completed && (
