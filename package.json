@@ -16,7 +16,8 @@
     "ios:install": "node scripts/install-ios.mjs",
     "mac:install": "node scripts/install-mac.mjs",
     "icons": "node scripts/build-icons.mjs",
-    "typecheck": "tsc --noEmit && pnpm --filter @sunto/app typecheck",
+    "mcp:build": "pnpm --filter @sunto/mcp build",
+    "typecheck": "tsc --noEmit && pnpm --filter @sunto/app typecheck && pnpm --filter @sunto/mcp typecheck",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "pnpm lint --fix",
     "format": "prettier --write . && pnpm native:format",
@@ -26,7 +27,8 @@
     "prepare": "husky",
     "check:desktop": "pnpm build:web && pnpm --filter @sunto/desktop smoke",
     "ios:build": "pnpm ios:sync && xcodebuild -project apps/mobile/ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath apps/mobile/DerivedData CODE_SIGNING_ALLOWED=NO build",
-    "test:storage": "node scripts/test-storage.mjs"
+    "test:storage": "node scripts/test-storage.mjs",
+    "test:mcp": "pnpm --filter @sunto/mcp test"
   },
   "lint-staged": {
     "*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}": [

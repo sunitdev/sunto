@@ -7,7 +7,17 @@ import {
   type State,
 } from './model';
 import { native, request } from './driver';
-import { nextDate, parseRepeat } from './dates';
+import {
+  completion,
+  epicDeletion,
+  listDeletion,
+  newEpic,
+  newList,
+  newTask,
+  sectionDeletion,
+  trashing,
+} from './ops';
+export { epicColors } from './ops';
 let state = emptyState();
 let ready = false;
 let error = '';
@@ -68,55 +78,9 @@ export function updateAll(changes: [string, Partial<Fields>][]) {
 export const update = (id: string, patch: Partial<Fields>) =>
   updateAll([[id, patch]]);
 export const setTrashed = (id: string, trashed: boolean) =>
-  update(
-    id,
-    trashed
-      ? { trashed, trashedAt: Date.now() }
-      : { trashed, trashedAt: 0, deletedFrom: '' },
-  );
-const newTask = (
-  list: string,
-  section: string,
-  epic = '',
-): Partial<Fields> => ({
-  kind: 'task',
-  list,
-  section,
-  epic,
-  title: '',
-  notes: '',
-  completed: false,
-  completedAt: 0,
-  trashed: false,
-  trashedAt: 0,
-  deleted: false,
-  created: Date.now(),
-});
-// Completing a repeating to-do adds its next occurrence in the same place,
-// and the completed one stops repeating.
-export function setCompleted(id: string, completed: boolean) {
-  const task = state.tasks[id];
-  const rule =
-    completed && task && !task.trashed && task.date
-      ? parseRepeat(task.repeat)
-      : null;
-  if (!rule)
-    return update(id, { completed, completedAt: completed ? Date.now() : 0 });
-  return updateAll([
-    [id, { completed, completedAt: Date.now(), repeat: '' }],
-    [
-      crypto.randomUUID(),
-      {
-        ...newTask(task.list, task.section, task.epic),
-        title: task.title,
-        notes: task.notes,
-        date: nextDate(task.date, rule),
-        repeat: task.repeat,
-        created: task.created,
-      },
-    ],
-  ]);
-}
+  update(id, trashing(trashed));
+export const setCompleted = (id: string, completed: boolean) =>
+  updateAll(completion(state, id, completed));
 // Picks the to-dos `ids` for the goal of `day`, dropping any others.
 export function setPlan(day: string, ids: string[]) {
   const picked = new Set(ids);
@@ -161,95 +125,21 @@ export async function add(
 // A new project or area, or a section of the project `list`.
 export async function addList(kind: 'project' | 'area' | 'section', list = '') {
   const id = crypto.randomUUID();
-  await update(id, {
-    kind,
-    list,
-    icon: '',
-    title: '',
-    notes: '',
-    deleted: false,
-    created: Date.now(),
-  });
+  await update(id, newList(kind, list));
   return id;
 }
 export const move = (id: string, list: string) =>
   update(id, { list, section: '', epic: '' });
-// The epic colours, in the order new epics take them.
-export const epicColors = [
-  '#EF4444',
-  '#F59E0B',
-  '#10B981',
-  '#0EA5E9',
-  '#8B5CF6',
-  '#EC4899',
-];
 // A new, untitled epic of `project`, taking the next colour in turn.
 export async function addEpic(project: string) {
-  const count = Object.values(state.tasks).filter(
-    (t) => t.kind === 'epic' && t.list === project && !t.deleted,
-  ).length;
   const id = crypto.randomUUID();
-  await update(id, {
-    kind: 'epic',
-    list: project,
-    color: epicColors[count % epicColors.length],
-    title: '',
-    deleted: false,
-    created: Date.now(),
-  });
+  await update(id, newEpic(state, project));
   return id;
 }
-// The epic's to-dos stay in its project, outside any epic.
-export function deleteEpic(id: string) {
-  const tasks = Object.values(state.tasks).filter(
-    (t) => t.kind === 'task' && t.epic === id && !t.deleted,
-  );
-  return updateAll([
-    ...tasks.map((t): [string, Partial<Fields>] => [t.id, { epic: '' }]),
-    [id, { deleted: true }],
-  ]);
-}
-// The section's to-dos stay in its project, outside any section.
-export function deleteSection(id: string) {
-  const tasks = Object.values(state.tasks).filter(
-    (t) => t.kind === 'task' && t.section === id && !t.deleted,
-  );
-  return updateAll([
-    ...tasks.map((t): [string, Partial<Fields>] => [t.id, { section: '' }]),
-    [id, { deleted: true }],
-  ]);
-}
-// The project or area, and a project's sections and epics, can't be restored;
-// its to-dos move to Trash and Put Back returns them to the Inbox, remembering
-// the list's name meanwhile. An area's projects are kept, without an area.
-export function deleteList(id: string) {
-  const list = state.tasks[id];
-  if (!list) return Promise.resolve();
-  const now = Date.now();
-  const children = Object.values(state.tasks).filter(
-    (t) => t.list === id && !t.deleted,
-  );
-  return updateAll([
-    ...children.map((t): [string, Partial<Fields>] => [
-      t.id,
-      t.kind === 'project'
-        ? { list: '' }
-        : t.kind === 'task' && t.title.trim()
-          ? {
-              list: '',
-              section: '',
-              epic: '',
-              deletedFrom:
-                list.title ||
-                (list.kind === 'area' ? 'New Area' : 'New Project'),
-              trashed: true,
-              trashedAt: t.trashed ? t.trashedAt : now,
-            }
-          : { deleted: true },
-    ]),
-    [id, { deleted: true }],
-  ]);
-}
+export const deleteEpic = (id: string) => updateAll(epicDeletion(state, id));
+export const deleteSection = (id: string) =>
+  updateAll(sectionDeletion(state, id));
+export const deleteList = (id: string) => updateAll(listDeletion(state, id));
 export function sync() {
   return run(async () => {
     if (!ready || !native || !folder) return;

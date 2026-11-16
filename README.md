@@ -28,6 +28,10 @@ On first iPhone install, trust the developer in **Settings → General → VPN &
 
 Create a **Sunto** folder in iCloud Drive, then choose it when Sunto first opens on each device (or later in **Settings**).
 
+## Use with Claude
+
+`apps/mcp` is an MCP server that lets Claude Code and other agents add, change and complete your to-dos through the sync folder. See [AGENTS.md](AGENTS.md) for setup.
+
 ## Develop
 
 ```sh

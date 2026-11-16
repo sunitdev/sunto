@@ -24,6 +24,12 @@ const datesURL = compile(
     'utf8',
   ),
 );
+const opsURL = compile(
+  readFileSync(
+    new URL('../packages/app/src/storage/ops.ts', import.meta.url),
+    'utf8',
+  ).replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL)),
+);
 test('failed local saves retain edits for retry, and export happens only after a successful save', async () => {
   let saved;
   let fail = false;
@@ -53,7 +59,7 @@ test('failed local saves retain edits for retry, and export happens only after a
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
     .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
-    .replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL));
+    .replace(/(['"])\.\/ops\1/g, JSON.stringify(opsURL));
   const store = await import(compile(source));
   await store.start();
   await store.chooseFolder();
@@ -132,7 +138,7 @@ test('sync merges other devices and legacy files, then removes legacy files only
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
     .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
-    .replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL));
+    .replace(/(['"])\.\/ops\1/g, JSON.stringify(opsURL));
   const store = await import(compile(source + '\n// sync test instance'));
   await store.start();
   await store.chooseFolder();
@@ -159,7 +165,7 @@ test('trash purges to-dos trashed more than three months ago', async () => {
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
     .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
-    .replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL));
+    .replace(/(['"])\.\/ops\1/g, JSON.stringify(opsURL));
   const store = await import(compile(source + '\n// purge test instance'));
   await store.start();
   const old = await store.add();
@@ -191,7 +197,7 @@ test('deleting a project trashes its to-dos, and Put Back returns them to the In
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
     .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
-    .replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL));
+    .replace(/(['"])\.\/ops\1/g, JSON.stringify(opsURL));
   const store = await import(compile(source + '\n// project test instance'));
   await store.start();
   const project = await store.addList('project');
@@ -239,7 +245,7 @@ test('deleting a section keeps its to-dos in the project, and moving a to-do lea
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
     .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
-    .replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL));
+    .replace(/(['"])\.\/ops\1/g, JSON.stringify(opsURL));
   const store = await import(compile(source + '\n// section test instance'));
   await store.start();
   const project = await store.addList('project');
@@ -274,7 +280,7 @@ test('completing a repeating to-do adds the next one, and the day plan replaces 
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
     .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
-    .replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL));
+    .replace(/(['"])\.\/ops\1/g, JSON.stringify(opsURL));
   const store = await import(compile(source + '\n// repeat test instance'));
   await store.start();
   const repeat = JSON.stringify({ freq: 'daily', interval: 2 });
@@ -324,7 +330,7 @@ test('epics take colours in turn, and a to-do leaves its epic when deleted, move
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
     .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
-    .replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL));
+    .replace(/(['"])\.\/ops\1/g, JSON.stringify(opsURL));
   const store = await import(compile(source + '\n// epic test instance'));
   await store.start();
   const project = await store.addList('project');
