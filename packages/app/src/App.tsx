@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import * as store from './storage/store';
 import { native } from './storage/driver';
-import { confirmAction, trashTodo } from './feedback';
+import { confirmAction, showToast, trashTodo } from './feedback';
 import type { Task } from './storage/model';
 import { dayKey } from './storage/dates';
 import {
@@ -259,6 +259,14 @@ export function App() {
     setSelected(null);
     setPlanning(day.goal.map((t) => t.id));
   }
+  // The goal's to-dos stay where they are, and Undo picks them again.
+  function clearPlan() {
+    if (editing) closeEditor();
+    const picked = day.goal.map((t) => t.id);
+    setPlanning(null);
+    void store.setPlan(today, []);
+    showToast('Today’s goal cleared', () => void store.setPlan(today, picked));
+  }
   function finishPlanning() {
     if (planning) void store.setPlan(today, planning);
     setPlanning(null);
@@ -427,6 +435,7 @@ export function App() {
                 }
                 cancel={() => setPlanning(null)}
                 finish={finishPlanning}
+                clear={day.goal.length > 0 ? clearPlan : undefined}
               />
             ) : planned ? (
               <GoalCard goal={day.goal} edit={startPlanning} />

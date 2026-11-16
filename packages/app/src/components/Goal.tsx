@@ -53,7 +53,8 @@ export function Stepper({
   );
 }
 // Picks the day's goal from the to-dos due today or overdue, grouped by list,
-// against a daily target that more picks can exceed.
+// against a daily target that more picks can exceed. Editing a planned day
+// can also clear its goal.
 export function Planner({
   library,
   due,
@@ -64,6 +65,7 @@ export function Planner({
   toggle,
   cancel,
   finish,
+  clear,
 }: {
   library: Library;
   due: Task[];
@@ -74,6 +76,7 @@ export function Planner({
   toggle: (id: string) => void;
   cancel: () => void;
   finish: () => void;
+  clear?: () => void;
 }) {
   const { lists, progress } = library;
   const count = picked.length;
@@ -118,6 +121,11 @@ export function Planner({
           >
             {status}
           </span>
+          {clear && (
+            <button className="plan-secondary" onClick={clear}>
+              Clear goal
+            </button>
+          )}
           <button className="plan-secondary" onClick={cancel}>
             Cancel
           </button>
