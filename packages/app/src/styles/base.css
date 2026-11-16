@@ -16,7 +16,7 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   --accent: #0a6cf0;
-  --gutter: max(48px, calc((100% - 720px) / 2));
+  --gutter: max(48px, calc((100% - 880px) / 2));
   /* Apple's system palette. */
   --bg: #fff;
   --side: #f4f4f6;

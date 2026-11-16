@@ -103,7 +103,15 @@ h1 {
   --gutter: 40px;
 }
 .view-board .task-scroll {
+  overflow-y: hidden;
   padding-right: 0;
+  padding-bottom: 0;
+}
+/* The board scrolls itself, so its sideways scrollbar stays at the bottom. */
+.view-board .board {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: auto;
 }
 .add-button,
 .footer-button {
@@ -206,6 +214,14 @@ h1 {
   }
   .task-scroll {
     padding: 0 var(--gutter) calc(130px + env(safe-area-inset-bottom));
+  }
+  .view-board .task-scroll {
+    overflow-y: auto;
+    padding-bottom: calc(130px + env(safe-area-inset-bottom));
+  }
+  .view-board .board {
+    flex: none;
+    overflow-y: visible;
   }
   .bottom-fade {
     display: block;

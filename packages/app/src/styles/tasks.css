@@ -359,7 +359,7 @@
 }
 .board-column {
   flex: none;
-  width: 236px;
+  width: 300px;
   padding: 8px;
   border-radius: 10px;
   background: var(--col);
@@ -384,7 +384,7 @@
   flex: 0 1 auto;
   field-sizing: content;
   min-width: 30px;
-  max-width: 130px;
+  max-width: 190px;
   font-size: 14px;
 }
 .board .section-count {
@@ -672,6 +672,12 @@
   height: 12px;
 }
 @media (width < 700px) {
+  .board-column {
+    width: 236px;
+  }
+  .board .section-title {
+    max-width: 130px;
+  }
   .task-check {
     width: 34px;
     height: 40px;
