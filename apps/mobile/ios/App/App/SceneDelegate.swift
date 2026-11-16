@@ -11,7 +11,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     guard let windowScene = scene as? UIWindowScene else { return }
 
     window = UIWindow(windowScene: windowScene)
-    window?.rootViewController = CAPBridgeViewController()
+    // SuntoViewController registers the SuntoStorage plugin.
+    window?.rootViewController = SuntoViewController()
     window?.makeKeyAndVisible()
 
     SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
