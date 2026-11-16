@@ -34,7 +34,7 @@ ipcMain.handle('sunto:emoji', (event) => {
 });
 // Matches the renderer's --bg token so resizing never flashes the wrong color.
 const windowBackground = () =>
-  nativeTheme.shouldUseDarkColors ? '#2e2e2e' : '#ffffff';
+  nativeTheme.shouldUseDarkColors ? '#2b2b2d' : '#ffffff';
 function createWindow() {
   const win = new BrowserWindow({
     width: 1180,

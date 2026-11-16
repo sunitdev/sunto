@@ -80,53 +80,55 @@ export function Editor({
         }}
       />
       {(onMove || onDate) && (
-        <div className="editor-pills">
-          {onMove && (
-            <button
-              className="move-pill"
-              aria-label={`Move to another list. Currently in ${listLabel}`}
-              aria-haspopup="dialog"
-              onClick={(e) => onMove(e.currentTarget.getBoundingClientRect())}
-            >
-              {list ? (
-                <ListIcon list={list} progress={progress} />
-              ) : (
-                <TrayIcon />
-              )}
-              <span>{listLabel}</span>
-            </button>
-          )}
-          {onEpic && (
-            <button
-              className={`epic-pill${epic ? ' has-epic' : ''}`}
-              aria-label={
-                epic
-                  ? `Epic: ${epic.title || 'New Epic'}. Change epic`
-                  : 'Assign an epic'
-              }
-              aria-haspopup="menu"
-              onClick={(e) => onEpic(e.currentTarget.getBoundingClientRect())}
-            >
-              {epic ? <EpicDot color={epic.color} /> : <TagIcon />}
-              <span>{epic ? epic.title || 'New Epic' : 'Epic'}</span>
-            </button>
-          )}
-          {onDate && (
-            <button
-              className={`date-pill${due?.overdue && !task.completed ? ' is-overdue' : ''}`}
-              aria-label={
-                due
-                  ? `Date: ${due.long}${task.repeat ? ', repeating' : ''}. Change date`
-                  : 'Set a date'
-              }
-              aria-haspopup="dialog"
-              onClick={(e) => onDate(e.currentTarget.getBoundingClientRect())}
-            >
-              <CalendarIcon />
-              <span>{due ? due.long : 'When'}</span>
-              {task.repeat && <RepeatIcon />}
-            </button>
-          )}
+        <div className="editor-foot">
+          <div className="editor-pills">
+            {onMove && (
+              <button
+                className="move-pill"
+                aria-label={`Move to another list. Currently in ${listLabel}`}
+                aria-haspopup="dialog"
+                onClick={(e) => onMove(e.currentTarget.getBoundingClientRect())}
+              >
+                {list ? (
+                  <ListIcon list={list} progress={progress} />
+                ) : (
+                  <TrayIcon />
+                )}
+                <span>{listLabel}</span>
+              </button>
+            )}
+            {onEpic && (
+              <button
+                className={`epic-pill${epic ? ' has-epic' : ''}`}
+                aria-label={
+                  epic
+                    ? `Epic: ${epic.title || 'New Epic'}. Change epic`
+                    : 'Assign an epic'
+                }
+                aria-haspopup="menu"
+                onClick={(e) => onEpic(e.currentTarget.getBoundingClientRect())}
+              >
+                {epic ? <EpicDot color={epic.color} /> : <TagIcon />}
+                <span>{epic ? epic.title || 'New Epic' : 'Epic'}</span>
+              </button>
+            )}
+            {onDate && (
+              <button
+                className={`date-pill${due?.overdue && !task.completed ? ' is-overdue' : ''}`}
+                aria-label={
+                  due
+                    ? `Date: ${due.long}${task.repeat ? ', repeating' : ''}. Change date`
+                    : 'Set a date'
+                }
+                aria-haspopup="dialog"
+                onClick={(e) => onDate(e.currentTarget.getBoundingClientRect())}
+              >
+                <CalendarIcon />
+                <span>{due ? due.long : 'When'}</span>
+                {task.repeat && <RepeatIcon />}
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

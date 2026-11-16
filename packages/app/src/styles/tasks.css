@@ -110,10 +110,6 @@
   line-height: 20px;
   font-weight: 700;
 }
-.section-title::placeholder {
-  color: currentColor;
-  opacity: 0.55;
-}
 .section-button {
   flex: none;
   width: 28px;
@@ -260,9 +256,9 @@
   text-decoration: line-through;
 }
 .task-editor {
-  margin: 6px -14px 14px;
-  padding: 10px 16px 14px 14px;
-  border-radius: 11px;
+  margin: 8px -14px 16px;
+  padding: 12px 14px 10px;
+  border-radius: 12px;
   background: var(--card);
   box-shadow: var(--shadow);
 }
@@ -274,12 +270,13 @@
   padding: 4px 0;
   font-size: 14px;
   line-height: 20px;
+  font-weight: 500;
   color: inherit;
 }
 .task-editor textarea {
   display: block;
   width: calc(100% - 28px);
-  margin: 2px 0 0 28px;
+  margin: 4px 0 0 28px;
   padding: 0;
   border: 0;
   resize: none;
@@ -289,15 +286,17 @@
   line-height: 19px;
   height: 38px;
 }
-.task-editor input::placeholder,
-.task-editor textarea::placeholder {
-  color: currentColor;
-  opacity: 0.65;
+.editor-foot {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
 }
+/* The pills reach into the card's padding, so the list icon lines up with
+   the checkbox and the date with the card's edge. */
 .editor-pills {
   display: flex;
   align-items: center;
-  margin: 10px 0 0 -8px;
+  margin: 0 -8px;
 }
 .move-pill,
 .date-pill {
@@ -319,7 +318,7 @@
 .date-pill {
   flex: none;
   gap: 6px;
-  margin: 0 -8px 0 auto;
+  margin: 0 0 0 auto;
   padding-left: 8px;
 }
 .editor-pills .move-pill {
@@ -450,23 +449,28 @@
 }
 .board .task-editor {
   margin: 0;
-  padding: 6px 10px 10px 8px;
-  border-radius: 9px;
+  padding: 8px 10px;
+  border-radius: 10px;
 }
 .board .task-editor input {
   font-size: 13px;
+  font-weight: 400;
 }
 .board .task-editor textarea {
   width: calc(100% - 26px);
-  margin-left: 26px;
+  margin: 2px 0 0 26px;
   font-size: 12px;
   line-height: 18px;
   height: 36px;
 }
+.board .editor-foot {
+  margin-top: 8px;
+  padding-top: 6px;
+}
 .board .editor-pills {
   flex-wrap: wrap;
   gap: 2px;
-  margin: 8px 0 0 -6px;
+  margin: 0 -6px;
 }
 .board .move-pill,
 .board .date-pill {
@@ -685,7 +689,7 @@
   .task-title {
     min-height: 40px;
     padding: 9px 0;
-    font-size: 16px;
+    font-size: 17px;
     line-height: 22px;
     cursor: text;
   }
@@ -697,12 +701,16 @@
   }
   .task-editor input {
     padding: 9px 0;
-    font-size: 16px;
+    font-size: 17px;
     line-height: 22px;
+    font-weight: 600;
   }
   .task-editor textarea {
     width: calc(100% - 34px);
     margin-left: 34px;
+    font-size: 15px;
+    line-height: 21px;
+    height: 42px;
   }
   .editor-pills {
     flex-wrap: wrap;

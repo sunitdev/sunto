@@ -15,98 +15,82 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --accent: #2570e0;
+  --accent: #0a6cf0;
   --gutter: max(28px, calc((100% - 540px) / 2));
+  /* Apple's system palette. */
   --bg: #fff;
-  --side: #f3f3f5;
+  --side: #f4f4f6;
   --bar: #fff;
-  --line: rgb(0 0 0 / 8%);
-  --rule: rgb(0 0 0 / 12%);
-  --sel: rgb(0 0 0 / 7%);
+  --line: rgb(60 60 67 / 11%);
+  --rule: rgb(60 60 67 / 15%);
+  --sel: rgb(120 120 128 / 13%);
   --card: #fff;
   --fg: #1d1d1f;
-  --muted: #68686d;
+  --muted: #6e6e73;
   --icon: #86868b;
-  --box: #8e9299;
+  --box: #8e8e93;
   --link: var(--accent);
   --date: var(--accent);
   --heading: var(--accent);
-  --danger: #c62828;
-  --warn: #a35f00;
-  --good: #237a43;
-  --plan-bg: rgb(37 112 224 / 5%);
-  --trash-body: #b4b4ba;
-  --trash-rim: #d4d4d9;
+  --danger: #d70015;
+  --warn: #b25000;
+  --good: #248a3d;
+  --plan-bg: rgb(10 108 240 / 5%);
+  --trash-body: #aeaeb2;
+  --trash-rim: #d1d1d6;
   --pie: #8e8e93;
-  --area-icon: #2e9c78;
-  --drop-fill: rgb(37 112 224 / 8%);
-  --drop-hot: rgb(37 112 224 / 14%);
-  --col: #f4f4f6;
+  --area-icon: #21976f;
+  --drop-fill: rgb(10 108 240 / 8%);
+  --drop-hot: rgb(10 108 240 / 14%);
+  --col: #f2f2f7;
   --kcard: #fff;
-  --kshadow: 0 0 0 0.5px rgb(0 0 0 / 6%), 0 1px 2px rgb(0 0 0 / 8%);
-  --pop: #fff;
+  --kshadow: 0 0 0 0.5px rgb(0 0 0 / 7%), 0 1px 3px rgb(0 0 0 / 7%);
+  /* Popovers and menus are translucent, over a blur. */
+  --pop: rgb(255 255 255 / 88%);
   --pop-border: rgb(0 0 0 / 10%);
+  --pop-blur: saturate(180%) blur(24px);
   --error-bg: #fff0ef;
   --selection: color-mix(in srgb, var(--accent) 16%, var(--bg));
-  --menu: rgb(246 246 246 / 92%);
-  --menu-shadow: 0 0 0 0.5px rgb(0 0 0 / 18%), 0 10px 30px rgb(0 0 0 / 18%);
   --shadow:
-    0 0 0 0.5px rgb(0 0 0 / 6%), 0 2px 6px rgb(0 0 0 / 10%),
-    0 10px 28px rgb(0 0 0 / 10%);
-}
-@media (width < 700px) {
-  :root {
-    --muted: #767676;
-  }
+    0 0 0 0.5px rgb(0 0 0 / 7%), 0 4px 14px rgb(0 0 0 / 8%),
+    0 18px 40px rgb(0 0 0 / 8%);
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #2e2e2e;
-    --side: #292929;
-    --bar: #2a2a2a;
-    --line: rgb(255 255 255 / 8%);
-    --rule: rgb(255 255 255 / 14%);
+    --bg: #2b2b2d;
+    --side: #232325;
+    --bar: #2b2b2d;
+    --line: rgb(255 255 255 / 7%);
+    --rule: rgb(255 255 255 / 12%);
     --sel: rgb(255 255 255 / 9%);
-    --card: #3a3a3a;
-    --fg: #f2f2f2;
-    --muted: #a0a0a0;
-    --icon: #9a9a9a;
-    --box: #8a8a8a;
-    --link: #6caeff;
-    --date: #7aa7f7;
-    --heading: #7aa7f7;
-    --danger: #ff7070;
-    --warn: #f0a33a;
-    --good: #5bc77a;
-    --plan-bg: rgb(122 167 247 / 8%);
-    --trash-body: #d4d4d4;
-    --trash-rim: #f0f0f0;
-    --pie: #a8a8a8;
-    --area-icon: #5cc4a0;
-    --drop-fill: rgb(122 167 247 / 12%);
-    --drop-hot: rgb(122 167 247 / 24%);
-    --col: rgb(255 255 255 / 4%);
-    --kcard: #383838;
-    --kshadow: 0 0 0 0.5px rgb(255 255 255 / 7%);
-    --pop: #38383a;
-    --pop-border: rgb(255 255 255 / 10%);
+    --card: #363638;
+    --fg: #f5f5f7;
+    --muted: #a1a1a6;
+    --icon: #98989d;
+    --box: #7c7c80;
+    --link: #4ba1ff;
+    --date: #4ba1ff;
+    --heading: #4ba1ff;
+    --danger: #ff6b61;
+    --warn: #ffb340;
+    --good: #32d74b;
+    --plan-bg: rgb(75 161 255 / 8%);
+    --trash-body: #c7c7cc;
+    --trash-rim: #e5e5ea;
+    --pie: #98989d;
+    --area-icon: #4cd4a9;
+    --drop-fill: rgb(75 161 255 / 12%);
+    --drop-hot: rgb(75 161 255 / 24%);
+    --col: rgb(255 255 255 / 4.5%);
+    --kcard: #363638;
+    --kshadow: 0 0 0 0.5px rgb(255 255 255 / 8%), 0 1px 2px rgb(0 0 0 / 30%);
+    --pop: rgb(50 50 52 / 86%);
+    --pop-border: rgb(255 255 255 / 12%);
     --error-bg: #4a2a28;
     --selection: color-mix(in srgb, var(--accent) 32%, var(--bg));
-    --menu: rgb(44 44 46 / 92%);
-    --menu-shadow:
-      0 0 0 0.5px rgb(255 255 255 / 14%), 0 10px 30px rgb(0 0 0 / 50%);
-    --shadow: 0 0 0 0.5px rgb(255 255 255 / 8%), 0 8px 24px rgb(0 0 0 / 45%);
-  }
-}
-@media (prefers-color-scheme: dark) and (width < 700px) {
-  :root {
-    --bg: #000;
-    --side: #1c1c1e;
-    --card: #1c1c1e;
-    --fg: #f2f2f7;
-    --muted: #9c9ca3;
-    --box: #7c7c84;
-    --shadow: 0 0 0 0.5px rgb(255 255 255 / 10%), 0 12px 32px rgb(0 0 0 / 70%);
+    --shadow:
+      0 0 0 0.5px rgb(255 255 255 / 10%), 0 4px 14px rgb(0 0 0 / 30%),
+      0 18px 44px rgb(0 0 0 / 40%);
   }
 }
 * {
@@ -123,10 +107,50 @@ textarea {
 button {
   color: inherit;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    box-shadow 0.12s ease,
+    background-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+/* Buttons tint under the pointer, and dim while pressed. */
+@media (hover: hover) {
+  button:not(:disabled):hover {
+    box-shadow: inset 0 0 0 999px rgb(120 120 128 / 10%);
+  }
+}
+button:not(:disabled):active {
+  opacity: 0.82;
 }
 button:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+input,
+textarea {
+  caret-color: var(--accent);
+}
+input::placeholder,
+textarea::placeholder {
+  color: currentColor;
+  opacity: 0.42;
+}
+::selection {
+  background: rgb(10 108 240 / 22%);
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 4px;
+  background: rgb(128 128 128 / 32%) content-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 button {
   border: 0;
