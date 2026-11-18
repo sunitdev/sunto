@@ -1,6 +1,13 @@
-import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import * as store from './storage/store';
-import { native } from './storage/driver';
+import { native, onOpen } from './storage/driver';
 import { confirmAction, showToast, trashTodo, trashTodos } from './feedback';
 import type { Task } from './storage/model';
 import { dayKey } from './storage/dates';
@@ -377,6 +384,11 @@ export function App() {
     return copy;
   }
   useSwipeBack(() => goBack(true), behind, atHome || welcome);
+  // Tapping the iPhone's widget opens Today's Goal.
+  const opened = useEffectEvent((next: string) => {
+    if (next === 'goal') showView('goal');
+  });
+  useEffect(() => onOpen(opened), []);
   async function addTask(section = '', near?: Task) {
     // New to-dos join the open project or area; elsewhere they go to the
     // Inbox. In Today they are due today, and in the goal they also join it.

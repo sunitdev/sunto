@@ -16,10 +16,19 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     window?.makeKeyAndVisible()
 
     SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
+    open(connectionOptions.urlContexts)
   }
 
   func scene(_ scene: UIScene, openURLContexts urlContexts: Set<UIOpenURLContext>) {
     SceneDelegateProxy.shared.scene(scene, openURLContexts: urlContexts)
+    open(urlContexts)
+  }
+
+  // A sunto:// link names the view to show, such as sunto://goal from the widget.
+  func open(_ urlContexts: Set<UIOpenURLContext>) {
+    for context in urlContexts where context.url.scheme == "sunto" {
+      (window?.rootViewController as? SuntoViewController)?.storage.open(context.url.host ?? "")
+    }
   }
 
   func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {

@@ -2,6 +2,7 @@ import Capacitor
 import Foundation
 import UIKit
 import UniformTypeIdentifiers
+import WidgetKit
 
 @objc(SuntoStoragePlugin)
 public class SuntoStoragePlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDelegate {
@@ -38,10 +39,41 @@ public class SuntoStoragePlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDe
       return
     }
     storageQueue.async {
-      do { call.resolve(try self.core().request(command, data: call.getString("data"))) } catch {
+      do {
+        call.resolve(
+          try self.widget(command, data: call.getString("data"))
+            ?? self.core().request(command, data: call.getString("data")))
+      } catch {
         call.reject(error.localizedDescription)
       }
     }
+  }
+  // The widget's copy of Today's Goal, and the to-dos ticked in it, or nil
+  // for a command the storage core handles.
+  func widget(_ command: String, data: String?) throws -> [String: Any]? {
+    switch command {
+    case "widget":
+      guard let data = data else { throw SharedGoal.failure("Invalid widget request") }
+      try SharedGoal.save(data)
+      WidgetCenter.shared.reloadAllTimelines()
+      return [:]
+    case "widget-ticks":
+      let ticks = try SharedGoal.ticks()
+      return ticks.isEmpty
+        ? [:] : ["data": String(decoding: try JSONEncoder().encode(ticks), as: UTF8.self)]
+    case "widget-clear":
+      guard let count = data.flatMap({ Int($0) }), count >= 0 else {
+        throw SharedGoal.failure("Invalid widget request")
+      }
+      try SharedGoal.clear(count)
+      WidgetCenter.shared.reloadAllTimelines()
+      return [:]
+    default: return nil
+    }
+  }
+  // Asks the web app to show `view`, once it listens if it does not yet.
+  func open(_ view: String) {
+    notifyListeners("open", data: ["view": view], retainUntilConsumed: true)
   }
   public func documentPicker(
     _ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]

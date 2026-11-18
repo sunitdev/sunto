@@ -127,7 +127,7 @@ run('xcodebuild', [
   `DEVELOPMENT_TEAM=${team}`,
   'CODE_SIGN_STYLE=Automatic',
   ...(values['bundle-id']
-    ? [`PRODUCT_BUNDLE_IDENTIFIER=${values['bundle-id']}`]
+    ? [`APP_BUNDLE_IDENTIFIER=${values['bundle-id']}`]
     : []),
 ]);
 const app = join(derivedData, 'Build/Products/Release-iphoneos/App.app');

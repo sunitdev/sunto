@@ -7,6 +7,7 @@ import {
   type State,
 } from './model';
 import { native, request } from './driver';
+import * as widget from './widget';
 import {
   completion,
   epicDeletion,
@@ -44,6 +45,7 @@ async function persist(next: State) {
   await request('save', JSON.stringify(next));
   error = '';
   emit();
+  await widget.publish(next);
 }
 let started: Promise<void> | undefined;
 export function start() {
@@ -94,6 +96,41 @@ export function setPlan(day: string, ids: string[]) {
         { planned: picked.has(t.id) ? day : '' },
       ]),
   );
+}
+// Applies the to-dos completed or opened again in the iPhone's widget, each
+// as of when it was ticked, then lets the widget forget them.
+export function applyWidget() {
+  return run(async () => {
+    if (!ready) return;
+    const ticked = await widget.ticks();
+    if (!ticked.length) return;
+    const last = new Map(ticked.map((t) => [t.id, t]));
+    const changes = [...last.values()]
+      .filter(
+        ({ id, completed }) =>
+          state.tasks[id] &&
+          !state.tasks[id].deleted &&
+          state.tasks[id].completed !== completed,
+      )
+      .flatMap(({ id, completed, at }) =>
+        completion(state, id, completed).map(
+          ([changed, patch]): [string, Partial<Fields>] => [
+            changed,
+            changed === id && completed ? { ...patch, completedAt: at } : patch,
+          ],
+        ),
+      );
+    if (changes.length) {
+      await persist(
+        changes.reduce((next, [id, patch]) => mutate(next, id, patch), state),
+      );
+      if (folder) {
+        syncStatus = 'Changes pending';
+        emit();
+      }
+    }
+    await widget.clearTicks(ticked.length);
+  });
 }
 // Trashed to-dos are permanently deleted three months after being trashed.
 export function purgeTrash() {

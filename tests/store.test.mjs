@@ -30,6 +30,10 @@ const opsURL = compile(
     'utf8',
   ).replace(/(['"])\.\/dates\1/, JSON.stringify(datesURL)),
 );
+// The iPhone widget's copy of the goal, which the store keeps up to date.
+const widgetURL = compile(
+  'export const publish = async () => {}; export const ticks = async () => []; export const clearTicks = async () => {};',
+);
 test('failed local saves retain edits for retry, and export happens only after a successful save', async () => {
   let saved;
   let fail = false;
@@ -59,6 +63,7 @@ test('failed local saves retain edits for retry, and export happens only after a
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
     .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
+    .replace(/(['"])\.\/widget\1/, JSON.stringify(widgetURL))
     .replace(/(['"])\.\/ops\1/g, JSON.stringify(opsURL));
   const store = await import(compile(source));
   await store.start();
@@ -138,6 +143,7 @@ test('sync merges other devices and legacy files, then removes legacy files only
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
     .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
+    .replace(/(['"])\.\/widget\1/, JSON.stringify(widgetURL))
     .replace(/(['"])\.\/ops\1/g, JSON.stringify(opsURL));
   const store = await import(compile(source + '\n// sync test instance'));
   await store.start();
@@ -165,6 +171,7 @@ test('trash purges to-dos trashed more than three months ago', async () => {
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
     .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
+    .replace(/(['"])\.\/widget\1/, JSON.stringify(widgetURL))
     .replace(/(['"])\.\/ops\1/g, JSON.stringify(opsURL));
   const store = await import(compile(source + '\n// purge test instance'));
   await store.start();
@@ -197,6 +204,7 @@ test('deleting a project trashes its to-dos, and Put Back returns them to the In
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
     .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
+    .replace(/(['"])\.\/widget\1/, JSON.stringify(widgetURL))
     .replace(/(['"])\.\/ops\1/g, JSON.stringify(opsURL));
   const store = await import(compile(source + '\n// project test instance'));
   await store.start();
@@ -245,6 +253,7 @@ test('deleting a section keeps its to-dos in the project, and moving a to-do lea
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
     .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
+    .replace(/(['"])\.\/widget\1/, JSON.stringify(widgetURL))
     .replace(/(['"])\.\/ops\1/g, JSON.stringify(opsURL));
   const store = await import(compile(source + '\n// section test instance'));
   await store.start();
@@ -280,6 +289,7 @@ test('completing a repeating to-do adds the next one, and the day plan replaces 
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
     .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
+    .replace(/(['"])\.\/widget\1/, JSON.stringify(widgetURL))
     .replace(/(['"])\.\/ops\1/g, JSON.stringify(opsURL));
   const store = await import(compile(source + '\n// repeat test instance'));
   await store.start();
@@ -330,6 +340,7 @@ test('epics take colours in turn, and a to-do leaves its epic when deleted, move
   )
     .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
     .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
+    .replace(/(['"])\.\/widget\1/, JSON.stringify(widgetURL))
     .replace(/(['"])\.\/ops\1/g, JSON.stringify(opsURL));
   const store = await import(compile(source + '\n// epic test instance'));
   await store.start();
@@ -368,4 +379,66 @@ test('epics take colours in turn, and a to-do leaves its epic when deleted, move
   assert.equal(tasks[second].deleted, true);
   assert.equal(tasks[kept].trashed, true);
   assert.equal(tasks[kept].epic, '');
+});
+test('to-dos ticked in the widget are applied as of when they were ticked, then cleared', async () => {
+  let saved;
+  globalThis.suntoTestRequest = async (command, data) => {
+    if (command === 'save') saved = data;
+    return command === 'load' ? { data: saved } : {};
+  };
+  let ticked = [];
+  let cleared = 0;
+  globalThis.suntoTestWidget = {
+    ticks: async () => ticked,
+    clear: async (count) => {
+      cleared = count;
+      ticked = ticked.slice(count);
+    },
+  };
+  const driverURL = compile(
+    'export const native = false; export const request = (command, data) => globalThis.suntoTestRequest(command, data);',
+  );
+  const tickingURL = compile(
+    'export const publish = async () => {}; export const ticks = () => globalThis.suntoTestWidget.ticks(); export const clearTicks = (count) => globalThis.suntoTestWidget.clear(count);',
+  );
+  const source = readFileSync(
+    new URL('../packages/app/src/storage/store.ts', import.meta.url),
+    'utf8',
+  )
+    .replace(/(['"])\.\/model\1/, JSON.stringify(modelURL))
+    .replace(/(['"])\.\/driver\1/, JSON.stringify(driverURL))
+    .replace(/(['"])\.\/widget\1/, JSON.stringify(tickingURL))
+    .replace(/(['"])\.\/ops\1/g, JSON.stringify(opsURL));
+  const store = await import(compile(source + '\n// widget test instance'));
+  await store.start();
+  const plants = await store.add('', '', {
+    title: 'Water the plants',
+    date: '2026-03-10',
+    repeat: JSON.stringify({ freq: 'daily', interval: 1 }),
+  });
+  const mail = await store.add('', '', { title: 'Answer mail' });
+  const call = await store.add('', '', { title: 'Call home' });
+  await store.setCompleted(call, true);
+  ticked = [
+    { id: mail, completed: true, at: 1000 },
+    { id: plants, completed: true, at: 2000 },
+    { id: mail, completed: false, at: 3000 },
+    { id: call, completed: false, at: 4000 },
+    { id: 'gone', completed: true, at: 5000 },
+  ];
+  await store.applyWidget();
+  const { tasks } = store.getSnapshot().state;
+  assert.equal(cleared, 5);
+  assert.deepEqual(ticked, []);
+  assert.equal(tasks[plants].completed, true);
+  assert.equal(tasks[plants].completedAt, 2000);
+  const next = Object.values(tasks).find(
+    (t) => t.title === 'Water the plants' && !t.completed,
+  );
+  assert.equal(next.date, '2026-03-11');
+  // The last tick of a to-do wins.
+  assert.equal(tasks[mail].completed, false);
+  assert.equal(tasks[call].completed, false);
+  assert.equal(tasks[call].completedAt, 0);
+  assert.equal(tasks.gone, undefined);
 });

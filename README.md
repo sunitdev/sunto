@@ -24,6 +24,10 @@ pnpm ios:install   # build and install on a connected iPhone
 
 On first iPhone install, trust the developer in **Settings → General → VPN & Device Management**. Free Apple accounts need a reinstall every 7 days.
 
+## iPhone widget
+
+On iOS 17 or later, hold the Home Screen, tap **Edit → Add Widget**, find **Sunto**, and add the large **Today's Goal** widget. It lists the to-dos picked for today and ticks them off with a tap on the circle. Tapping anywhere else opens Today's Goal. Open the app once after installing so the widget has a goal to show. To-dos ticked in the widget are saved, and synced to other devices, the next time Sunto opens.
+
 ## Sync
 
 Create a **Sunto** folder in iCloud Drive, then choose it when Sunto first opens on each device (or later in **Settings**).
