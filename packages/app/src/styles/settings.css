@@ -96,7 +96,8 @@
   line-height: 17px;
   color: var(--muted);
 }
-/* The sidebar's settings button, beside New List. */
+/* The sidebar's search and settings buttons, beside New List. */
+.search-open,
 .settings-open {
   flex: none;
   margin-left: auto;
@@ -108,10 +109,14 @@
   align-items: center;
   justify-content: center;
 }
+.search-open + .settings-open {
+  margin-left: 2px;
+}
+.search-open[aria-current='page'],
 .settings-open[aria-current='page'] {
   background: var(--sel);
 }
-.sidebar .settings-open .view-icon {
+.sidebar :is(.search-open, .settings-open) .view-icon {
   width: 17px;
   height: 17px;
   color: inherit;
@@ -200,8 +205,9 @@
   border-radius: 8px;
   font-size: 14px;
 }
-/* On the phone, settings open from the top of the lists. */
+/* On the phone, search and settings open from the top of the lists. */
 @media (width < 700px) {
+  .search-open,
   .settings-open {
     position: fixed;
     top: max(44px, env(safe-area-inset-top));
@@ -213,7 +219,10 @@
     background: var(--sel);
     color: var(--fg);
   }
-  .sidebar .settings-open .view-icon {
+  .search-open {
+    right: calc(64px + env(safe-area-inset-right));
+  }
+  .sidebar :is(.search-open, .settings-open) .view-icon {
     width: 20px;
     height: 20px;
   }

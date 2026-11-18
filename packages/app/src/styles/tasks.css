@@ -251,6 +251,7 @@
 .view-inbox .task-row--completed .task-title,
 .view-today .task-row--completed .task-title,
 .view-goal .task-row--completed .task-title,
+.view-search .task-row--completed .task-title,
 .view-list .task-row--completed .task-title {
   color: var(--muted);
   text-decoration: line-through;

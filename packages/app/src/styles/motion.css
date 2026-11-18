@@ -126,6 +126,7 @@
   animation: rise-in 0.28s var(--ease-out);
 }
 .inbox-header,
+.search-field,
 .list-notes,
 .epic-bar {
   animation: fade-in 0.2s ease;
@@ -211,7 +212,8 @@
 }
 /* The strike-through is always there, but only shows once completed, so it
    can fade in. */
-:is(.view-inbox, .view-today, .view-goal, .view-list) .task-title {
+:is(.view-inbox, .view-today, .view-goal, .view-search, .view-list)
+  .task-title {
   text-decoration: line-through;
   text-decoration-color: transparent;
   transition:
@@ -220,19 +222,19 @@
 }
 /* Where completed to-dos only linger, the box pops before the row leaves.
    Elsewhere they are shown completed, and stay still. */
-:is(.view-inbox, .view-today, .view-list)
+:is(.view-inbox, .view-today, .view-search, .view-list)
   .task-item.task-row--completed:not(.task-item--editing) {
   display: grid;
   grid-template-rows: 1fr;
   animation: row-leave 0.4s ease 0.45s forwards;
 }
-:is(.view-inbox, .view-today, .view-list)
+:is(.view-inbox, .view-today, .view-search, .view-list)
   .task-row--completed:not(.task-item--editing)
   > .task-row {
   min-height: 0;
   overflow: hidden;
 }
-:is(.view-inbox, .view-today, .view-list)
+:is(.view-inbox, .view-today, .view-search, .view-list)
   .task-row--completed:not(.task-item--editing)
   .task-box {
   animation: check-pop 0.35s var(--ease-out);

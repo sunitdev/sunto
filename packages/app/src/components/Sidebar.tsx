@@ -6,7 +6,7 @@ import { taskDropTarget } from '../drag';
 import { longPress } from '../longPress';
 import { useCollapsedAreas } from '../hooks/useCollapsedAreas';
 import { titles, untitled, type StaticView, type View } from '../views';
-import { ListIcon, SettingsIcon, ViewIcon } from './icons';
+import { ListIcon, SearchIcon, SettingsIcon, ViewIcon } from './icons';
 import { NewListMenu } from './NewListMenu';
 
 export function Sidebar({
@@ -215,6 +215,15 @@ export function Sidebar({
       </nav>
       <div className="sidebar-footer">
         <NewListMenu create={addList} />
+        <button
+          className="search-open"
+          aria-label="Search"
+          data-hint="Search (⌘F)"
+          aria-current={view === 'search' ? 'page' : undefined}
+          onClick={() => show('search')}
+        >
+          <SearchIcon />
+        </button>
         <button
           className="settings-open"
           aria-label="Settings"

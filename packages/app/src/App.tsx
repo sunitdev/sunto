@@ -14,9 +14,9 @@ import {
   visibleTasks,
 } from './storage/selectors';
 import { useDailyTarget } from './hooks/useDailyTarget';
+import { useCommandKey } from './hooks/useCommandKey';
 import { useEditor } from './hooks/useEditor';
 import { useGlide } from './hooks/useGlide';
-import { useNewTodoKey } from './hooks/useNewTodoKey';
 import { usePhone } from './hooks/usePhone';
 import { useSwipeBack } from './hooks/useSwipeBack';
 import { useSync } from './hooks/useSync';
@@ -38,9 +38,15 @@ import { DatePopover } from './components/DatePopover';
 import { EpicBar } from './components/EpicBar';
 import { Footer } from './components/Footer';
 import { GoalCard, Planner, PlanPrompt } from './components/Goal';
-import { InboxIcon, ToolbarIcon, ViewIcon } from './components/icons';
+import {
+  InboxIcon,
+  SearchIcon,
+  ToolbarIcon,
+  ViewIcon,
+} from './components/icons';
 import { ListHeader } from './components/ListHeader';
 import { MovePopover } from './components/MovePopover';
+import { SearchField } from './components/SearchField';
 import { Settings, Welcome } from './components/Settings';
 import { Sidebar } from './components/Sidebar';
 import { TaskList } from './components/TaskList';
@@ -92,6 +98,10 @@ export function App() {
   const [epicFilter, setEpicFilter] = useState<Record<string, string>>({});
   // The to-dos picked while planning the day, before they are saved.
   const [planning, setPlanning] = useState<string[] | null>(null);
+  // What Search and the Logbook were last searched for, each kept while
+  // other views are open.
+  const [queries, setQueries] = useState({ search: '', logbook: '' });
+  const searchField = useRef<HTMLInputElement>(null);
   const [target, setTarget] = useDailyTarget();
   const today = dayKey();
   const library = organize(state);
@@ -106,6 +116,11 @@ export function App() {
     project && epicsOf(project.id).some((e) => e.id === epicFilter[project.id])
       ? epicFilter[project.id]
       : '';
+  const searching =
+    view === 'search' || view === 'logbook'
+      ? (view as keyof typeof queries)
+      : undefined;
+  const query = searching ? queries[searching] : '';
   const tasks =
     view === 'settings'
       ? []
@@ -113,6 +128,7 @@ export function App() {
           list: openList?.id ?? '',
           epic,
           today,
+          query,
           editing,
           lingering,
         });
@@ -124,7 +140,7 @@ export function App() {
   const scroll = useRef<HTMLDivElement>(null);
   useGlide(scroll, planned);
   const groups = (
-    view === 'today'
+    view === 'today' || view === 'search'
       ? groupByList(tasks, library)
       : planned
         ? groupGoal(tasks, library)
@@ -200,7 +216,10 @@ export function App() {
     // Completed to-dos stay briefly in their list before moving to the Logbook.
     const linger =
       completed &&
-      (view === 'inbox' || view === 'today' || !!openList) &&
+      (view === 'inbox' ||
+        view === 'today' ||
+        view === 'search' ||
+        !!openList) &&
       !task.trashed;
     setLinger(task.id, linger);
     if (linger) setTimeout(() => setLinger(task.id, false), 900);
@@ -297,7 +316,16 @@ export function App() {
         : shown.find((t) => t.id === (editing ?? selected));
     void addTask('', near);
   }
-  useNewTodoKey(addHere, !ready || welcome);
+  useCommandKey('n', addHere, !ready || welcome);
+  // Cmd+F searches the Logbook while it is open, and the open to-dos
+  // elsewhere.
+  function find() {
+    setMenu(null);
+    if (!searching) return showView('search');
+    if (editing) closeEditor();
+    searchField.current?.select();
+  }
+  useCommandKey('f', find, !ready || welcome);
   function addSection() {
     if (editing) closeEditor();
     if (project) void store.addList('section', project.id);
@@ -446,6 +474,19 @@ export function App() {
             <h1>{titles[view as StaticView]}</h1>
           </header>
         )}
+        {searching && (
+          <SearchField
+            key={`search-${view}`}
+            query={query}
+            setQuery={(next) => setQueries({ ...queries, [searching]: next })}
+            label={
+              searching === 'search' ? 'Search open to-dos' : 'Search Logbook'
+            }
+            inputRef={searchField}
+            // Search starts in its field, unless returned to with results.
+            autoFocus={searching === 'search' && !query}
+          />
+        )}
         {project && (
           <EpicBar
             key={`epics-${project.id}`}
@@ -529,9 +570,17 @@ export function App() {
             view !== 'goal' &&
             view !== 'settings' && (
               <div className="empty-state">
-                <InboxIcon empty />
+                {view === 'search' || query.trim() ? (
+                  <SearchIcon empty />
+                ) : (
+                  <InboxIcon empty />
+                )}
                 <span>
-                  {ready ? empties[view as StaticView] : 'Loading tasks…'}
+                  {!ready
+                    ? 'Loading tasks…'
+                    : query.trim()
+                      ? `No ${view === 'logbook' ? 'completed' : 'open'} to-dos match “${query.trim()}”`
+                      : empties[view as StaticView]}
                 </span>
               </div>
             )}

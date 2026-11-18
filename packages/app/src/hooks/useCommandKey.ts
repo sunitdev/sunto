@@ -2,9 +2,9 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import { getConfirmation } from '../feedback';
 import { phoneQuery } from './usePhone';
 
-// Desktop Cmd+N (Ctrl+N elsewhere) calls `add`, also while a to-do is being
-// edited. Ignored while `paused` or a confirmation is open.
-export function useNewTodoKey(add: () => void, paused: boolean) {
+// Desktop Cmd+`key` (Ctrl+`key` elsewhere) calls `run`, also while a to-do is
+// being edited. Ignored while `paused` or a confirmation is open.
+export function useCommandKey(key: string, run: () => void, paused: boolean) {
   const onKey = useRef((e: KeyboardEvent) => void e);
   useEffect(() => {
     const keydown = (e: KeyboardEvent) => onKey.current(e);
@@ -14,7 +14,7 @@ export function useNewTodoKey(add: () => void, paused: boolean) {
   useLayoutEffect(() => {
     onKey.current = (e) => {
       if (
-        e.key.toLowerCase() !== 'n' ||
+        e.key.toLowerCase() !== key ||
         !(e.metaKey || e.ctrlKey) ||
         e.shiftKey ||
         e.altKey ||
@@ -24,7 +24,7 @@ export function useNewTodoKey(add: () => void, paused: boolean) {
         return;
       e.preventDefault();
       if (phoneQuery.matches || paused || getConfirmation()) return;
-      add();
+      run();
     };
   });
 }

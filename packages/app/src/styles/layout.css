@@ -80,6 +80,56 @@ h1 {
   width: 20px;
   height: 20px;
 }
+/* Search's and the Logbook's field, between the header and the to-dos. */
+.search-field {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  margin: -8px var(--gutter) 18px;
+  padding: 0 4px 0 10px;
+  border-radius: 9px;
+  background: var(--sel);
+  color: var(--muted);
+}
+.search-field > svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.search-field input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--fg);
+  font-size: 14px;
+  line-height: 20px;
+}
+.search-field input::placeholder {
+  color: var(--muted);
+}
+.search-field:focus-within {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.search-clear {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  color: var(--icon);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.search-clear svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.2;
+}
 .task-scroll {
   flex: 1;
   min-height: 0;
@@ -241,6 +291,24 @@ h1 {
   .list-header {
     padding-top: calc(var(--top) + 48px);
     padding-bottom: 6px;
+  }
+  /* iOS search bars. */
+  .search-field {
+    height: 38px;
+    margin-top: -6px;
+    border-radius: 11px;
+  }
+  .search-field > svg {
+    width: 18px;
+    height: 18px;
+  }
+  /* iOS zooms into fields with text under 16px. */
+  .search-field input {
+    font-size: 17px;
+    line-height: 22px;
+  }
+  .search-field:focus-within {
+    box-shadow: none;
   }
   .task-scroll {
     padding: 0 var(--gutter) calc(130px + env(safe-area-inset-bottom));

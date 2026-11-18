@@ -117,12 +117,29 @@ export function SettingsIcon() {
     </svg>
   );
 }
+export function SearchIcon({ empty = false }: { empty?: boolean }) {
+  return (
+    <svg
+      className={`view-icon search-icon${empty ? ' empty-icon' : ''}`}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={empty ? 1.5 : 2}
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M15.4 15.4l5 5" />
+    </svg>
+  );
+}
 const viewIcons: Record<StaticView, typeof InboxIcon> = {
   inbox: InboxIcon,
   today: TodayIcon,
   goal: GoalIcon,
   logbook: LogbookIcon,
   trash: TrashIcon,
+  search: SearchIcon,
   settings: SettingsIcon,
 };
 export function ViewIcon({ view }: { view: StaticView }) {

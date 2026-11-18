@@ -208,8 +208,9 @@
     pointer-events: none;
     background: linear-gradient(to bottom, transparent, var(--bg) 60%);
   }
+  /* The lists start below the search and settings buttons. */
   .sidebar-nav {
-    padding: max(62px, calc(env(safe-area-inset-top) + 16px)) 12px
+    padding: max(96px, calc(env(safe-area-inset-top) + 52px)) 12px
       calc(140px + env(safe-area-inset-bottom));
   }
   .sidebar-item {

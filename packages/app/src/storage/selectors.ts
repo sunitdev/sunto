@@ -87,11 +87,24 @@ export function dayPlan({ todos }: Library, today: string) {
 }
 export type Day = ReturnType<typeof dayPlan>;
 
+// Text in lower case without accents, so searches ignore both.
+const fold = (text: string) =>
+  text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+// Whether every word of `query` is in the to-do's title or notes. An empty
+// query matches every to-do.
+export function matches(t: Task, query: string) {
+  const text = fold(`${t.title}\n${t.notes}`);
+  return fold(query)
+    .split(/\s+/)
+    .every((word) => text.includes(word));
+}
+
 // The to-dos `view` shows, in display order. `list` is the open project or
 // area ('' for the Inbox), `epic` the project's epic to show alone ('' for
-// all), and `today` the current day. The to-do being
-// edited stays visible, and so does one just completed while it lingers; the
-// goal keeps them all.
+// all), `today` the current day, and `query` the text searched for in Search
+// and the Logbook. Search shows the open to-dos matching it, and nothing
+// until it is typed. The to-do being edited stays visible, and so does one
+// just completed while it lingers; the goal keeps them all.
 export function visibleTasks(
   { todos, listOf }: Library,
   view: View,
@@ -99,20 +112,23 @@ export function visibleTasks(
     list: string;
     epic?: string;
     today: string;
+    query?: string;
     editing: string | null;
     lingering: Record<string, true>;
   },
 ) {
-  const { list, epic, today, editing, lingering } = options;
+  const { list, epic, today, query = '', editing, lingering } = options;
   const open = (t: Task) => !t.completed || lingering[t.id];
   const shows = (t: Task) =>
     view === 'logbook'
-      ? t.completed && !lingering[t.id]
-      : view === 'today'
-        ? !!t.date && t.date <= today && open(t)
-        : view === 'goal'
-          ? t.planned === today
-          : listOf(t) === list && open(t) && (!epic || t.epic === epic);
+      ? t.completed && !lingering[t.id] && matches(t, query)
+      : view === 'search'
+        ? open(t) && !!query.trim() && matches(t, query)
+        : view === 'today'
+          ? !!t.date && t.date <= today && open(t)
+          : view === 'goal'
+            ? t.planned === today
+            : listOf(t) === list && open(t) && (!epic || t.epic === epic);
   return todos
     .filter((t) =>
       view === 'trash'
@@ -166,7 +182,7 @@ export function groupTasks(
   return groups;
 }
 
-// Today and the goal group to-dos by their list, in sidebar order.
+// Today, Search and the goal group to-dos by their list, in sidebar order.
 export function groupByList(tasks: Task[], { order, listOf }: Library) {
   return order
     .map((list) => ({
