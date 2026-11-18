@@ -315,3 +315,19 @@ export function EpicDot({ color }: { color: string }) {
     />
   );
 }
+// A section of a project, where the move popover lists them.
+export function SectionIcon() {
+  return (
+    <svg
+      className="view-icon section-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M4.5 6.5h15M4.5 12h15M4.5 17.5h9" />
+    </svg>
+  );
+}

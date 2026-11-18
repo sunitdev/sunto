@@ -78,7 +78,9 @@ export function updateAll(changes: [string, Partial<Fields>][]) {
 export const update = (id: string, patch: Partial<Fields>) =>
   updateAll([[id, patch]]);
 export const setTrashed = (id: string, trashed: boolean) =>
-  update(id, trashing(trashed));
+  setTrashedAll([id], trashed);
+export const setTrashedAll = (ids: string[], trashed: boolean) =>
+  updateAll(ids.map((id) => [id, trashing(trashed)]));
 export const setCompleted = (id: string, completed: boolean) =>
   updateAll(completion(state, id, completed));
 // Picks the to-dos `ids` for the goal of `day`, dropping any others.
@@ -130,6 +132,17 @@ export async function addList(kind: 'project' | 'area' | 'section', list = '') {
 }
 export const move = (id: string, list: string) =>
   update(id, { list, section: '', epic: '' });
+// Moves the to-dos `ids` to `list`, into its `section` if given. Each keeps
+// its epic only when it stays in its project.
+export const moveAll = (ids: string[], list: string, section = '') =>
+  updateAll(
+    ids.map((id) => [
+      id,
+      state.tasks[id]?.list === list
+        ? { section }
+        : { list, section, epic: '' },
+    ]),
+  );
 // A new, untitled epic of `project`, taking the next colour in turn.
 export async function addEpic(project: string) {
   const id = crypto.randomUUID();

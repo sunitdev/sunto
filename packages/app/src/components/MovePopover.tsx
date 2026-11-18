@@ -4,11 +4,12 @@ import type { Library } from '../storage/selectors';
 import { useDismiss } from '../hooks/useDismiss';
 import { place } from '../hooks/usePhone';
 import { untitled } from '../views';
-import { ListIcon, TrayIcon } from './icons';
+import { ListIcon, SectionIcon, TrayIcon } from './icons';
 
 type Row = {
   key: string;
   list?: Task;
+  section?: Task;
   label: string;
   sub?: string;
   current: boolean;
@@ -31,32 +32,35 @@ function Chevron({ d }: { d: string }) {
     </svg>
   );
 }
-// Moves `task` to the Inbox, a project or an area. Areas with projects open
-// to list them, and searching lists every match. It opens above the element
-// that `anchor` measures, or below it when there is no room.
+// Moves to-dos to the Inbox, a project, a section of one, or an area.
+// `current` is the list and section they share, if any. Areas with projects
+// and projects with sections open to list them, and searching lists every
+// match. It opens above the element that `anchor` measures, or below it when
+// there is no room.
 export function MovePopover({
-  task,
+  current: shared,
   library,
   anchor,
   move,
   close,
 }: {
-  task: Task;
+  current?: { list: string; section: string };
   library: Library;
   anchor: DOMRect;
-  move: (list: string) => void;
+  move: (list: string, section?: string) => void;
   close: () => void;
 }) {
-  const { areas, projects, lists, listOf, areaOf, progress } = library;
+  const { areas, projects, lists, areaOf, sectionsOf, progress } = library;
   const root = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState('');
   const [drill, setDrill] = useState<string | null>(null);
-  // An area's projects slide in from the right, and the lists back from the
-  // left, once one has been opened.
-  const [drilled, setDrilled] = useState(false);
-  function open(area: string | null) {
-    setDrilled(true);
-    setDrill(area);
+  // An area's projects or a project's sections slide in from the right, and
+  // the lists they were opened from back from the left, once one has been
+  // opened.
+  const [slide, setSlide] = useState<'in' | 'back' | null>(null);
+  function open(list: string | null, back = false) {
+    setSlide(back ? 'back' : 'in');
+    setDrill(list);
   }
   useDismiss(root, true, close);
   useLayoutEffect(() => {
@@ -75,9 +79,16 @@ export function MovePopover({
       ),
     );
   });
-  const current = listOf(task);
+  const current = shared?.list;
   const currentArea =
-    lists[current]?.kind === 'project' ? areaOf(lists[current]) : current;
+    current && lists[current]?.kind === 'project'
+      ? areaOf(lists[current])
+      : current;
+  // Picking where the to-dos already are closes the popover.
+  const pick = (list: string, section = '') =>
+    shared?.list === list && shared.section === section
+      ? close()
+      : move(list, section);
   const row = (list: Task | undefined, extra: Partial<Row> = {}): Row => {
     const id = list?.id ?? '';
     return {
@@ -85,38 +96,67 @@ export function MovePopover({
       list,
       label: list ? list.title || untitled(list) : 'Inbox',
       current: id === current,
-      pick: () => (id === current ? close() : move(id)),
+      pick: () => pick(id),
       ...extra,
     };
   };
+  const sectionRow = (project: Task, section: Task, sub?: string): Row => ({
+    key: section.id,
+    section,
+    label: section.title || 'New Section',
+    sub,
+    current: current === project.id && shared?.section === section.id,
+    pick: () => pick(project.id, section.id),
+  });
+  // A project with sections opens to list them.
+  const projectRow = (p: Task, extra: Partial<Row> = {}) =>
+    sectionsOf(p.id).length
+      ? row(p, { drill: true, pick: () => open(p.id), ...extra })
+      : row(p, extra);
   const q = query.trim().toLowerCase();
-  const area = q ? undefined : lists[drill ?? ''];
+  const opened = q ? undefined : lists[drill ?? ''];
+  // Back from a project goes to its area, if it was opened from there.
+  const parent = opened?.kind === 'project' ? lists[areaOf(opened)] : undefined;
   const rows = q
     ? [
         row(undefined),
-        ...projects.map((p) => {
+        ...projects.flatMap((p) => {
           const a = lists[areaOf(p)];
-          return row(p, { sub: a ? a.title || untitled(a) : '' });
+          const name = p.title || untitled(p);
+          return [
+            row(p, { sub: a ? a.title || untitled(a) : '' }),
+            ...sectionsOf(p.id).map((s) => sectionRow(p, s, name)),
+          ];
         }),
         ...areas.map((a) => row(a, { sub: 'Area' })),
       ].filter((r) => r.label.toLowerCase().includes(q))
-    : area
+    : opened?.kind === 'project'
       ? [
-          row(area, { sub: 'Area' }),
-          ...projects.filter((p) => areaOf(p) === area.id).map((p) => row(p)),
-        ]
-      : [
-          row(undefined),
-          ...projects.filter((p) => !areaOf(p)).map((p) => row(p)),
-          ...areas.map((a) => {
-            const opens = projects.some((p) => areaOf(p) === a.id);
-            return row(a, {
-              current: a.id === currentArea,
-              drill: opens,
-              pick: opens ? () => open(a.id) : row(a).pick,
-            });
+          row(opened, {
+            sub: 'No Section',
+            current: current === opened.id && !shared?.section,
           }),
-        ];
+          ...sectionsOf(opened.id).map((s) => sectionRow(opened, s)),
+        ]
+      : opened
+        ? [
+            row(opened, { sub: 'Area' }),
+            ...projects
+              .filter((p) => areaOf(p) === opened.id)
+              .map((p) => projectRow(p)),
+          ]
+        : [
+            row(undefined),
+            ...projects.filter((p) => !areaOf(p)).map((p) => projectRow(p)),
+            ...areas.map((a) => {
+              const opens = projects.some((p) => areaOf(p) === a.id);
+              return row(a, {
+                current: a.id === currentArea,
+                drill: opens,
+                pick: opens ? () => open(a.id) : row(a).pick,
+              });
+            }),
+          ];
   return (
     <div
       ref={root}
@@ -152,12 +192,15 @@ export function MovePopover({
       </div>
       <div
         key={drill ?? ''}
-        className={`move-rows${drilled ? (drill ? ' slide-in' : ' slide-back') : ''}`}
+        className={`move-rows${slide ? ` slide-${slide}` : ''}`}
       >
-        {area && (
-          <button className="move-back" onClick={() => open(null)}>
+        {opened && (
+          <button
+            className="move-back"
+            onClick={() => open(parent?.id ?? null, true)}
+          >
             <Chevron d="M15 5l-7 7 7 7" />
-            {area.title || untitled(area)}
+            {opened.title || untitled(opened)}
           </button>
         )}
         {rows.map((r) => (
@@ -167,7 +210,9 @@ export function MovePopover({
             aria-current={r.current || undefined}
             onClick={r.pick}
           >
-            {r.list ? (
+            {r.section ? (
+              <SectionIcon />
+            ) : r.list ? (
               <ListIcon list={r.list} progress={progress(r.list.id)} />
             ) : (
               <TrayIcon />

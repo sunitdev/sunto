@@ -65,6 +65,14 @@ function preset(kind: Preset, day: string): Repeat {
     return { freq: 'monthly', interval: 1, monthDay: d.getDate() };
   return { freq: kind, interval: 1 };
 }
+// The date and repeat that moving `task` to `day` gives it, where a preset
+// rule follows the date to its new day, as the popover does for one to-do.
+function following(task: Task, day: string): Partial<Fields> {
+  const rule = parseRepeat(task.repeat);
+  if (!rule || isCustom(rule, task.date || day)) return { date: day };
+  const kind: Preset = isWorkdays(rule) ? 'weekdays' : rule.freq;
+  return { date: day, repeat: formatRepeat(preset(kind, day)) };
+}
 // Whether no preset for `day` makes `rule`.
 function isCustom(rule: Repeat, day: string) {
   const d = parseDay(day);
@@ -175,24 +183,29 @@ const quickIcons = {
     </svg>
   ),
 };
-// Sets `task`'s date and repeat rule: quick picks and a month calendar, then
-// a page of repeat presets and one for a custom rule. It opens above the
-// element that `anchor` measures, aligned to its right edge, or below it when
-// there is no room. Escape steps back a page before closing.
+// Sets the date and repeat rule of `tasks`: quick picks and a month calendar,
+// then a page of repeat presets and one for a custom rule. Several to-dos
+// share a date, keeping their own repeat rules, which can't be set here. It
+// opens above the element that `anchor` measures, aligned to its right edge,
+// or below it when there is no room. Escape steps back a page before closing.
 export function DatePopover({
-  task,
+  tasks,
   today,
   anchor,
   close,
 }: {
-  task: Task;
+  tasks: Task[];
   today: string;
   anchor: DOMRect;
   close: () => void;
 }) {
   const root = useRef<HTMLDivElement>(null);
-  const date = task.date;
-  const rule = parseRepeat(task.repeat);
+  const [task] = tasks;
+  const several = tasks.length > 1;
+  // Several to-dos show their date only when they share one.
+  const date = tasks.every((t) => t.date === task.date) ? task.date : '';
+  const dated = tasks.some((t) => t.date);
+  const rule = several ? null : parseRepeat(task.repeat);
   // The day presets and the calendar start from.
   const base = date || today;
   const [page, setPage] = useState<Page>('main');
@@ -247,14 +260,19 @@ export function DatePopover({
         ? 'weekdays'
         : rule.freq;
   const save = (patch: Partial<Fields>) =>
-    void store.update(task.id, rescheduling(task, patch));
+    void store.updateAll(tasks.map((t) => [t.id, rescheduling(t, patch)]));
   // A preset follows the date to its new day.
   function setDate(day: string) {
-    save(
-      rule && mode !== 'never' && mode !== 'custom'
-        ? { date: day, repeat: formatRepeat(preset(mode, day)) }
-        : { date: day },
-    );
+    if (several)
+      void store.updateAll(
+        tasks.map((t) => [t.id, rescheduling(t, following(t, day))]),
+      );
+    else
+      save(
+        rule && mode !== 'never' && mode !== 'custom'
+          ? { date: day, repeat: formatRepeat(preset(mode, day)) }
+          : { date: day },
+      );
     setMonth(monthOf(day));
   }
   // Repeating needs a date, so it starts today.
@@ -305,8 +323,8 @@ export function DatePopover({
   );
   const days = Array.from({ length: 42 }, (_, k) => addDays(start, k));
 
-  let headline = 'No date';
-  let subline = 'Pick a day below';
+  let headline = dated ? 'Different dates' : 'No date';
+  let subline = several ? `${tasks.length} to-dos` : 'Pick a day below';
   if (date) {
     const diff = daysBetween(today, date);
     headline = format(date, { weekday: 'long', day: 'numeric', month: 'long' });
@@ -321,6 +339,7 @@ export function DatePopover({
               ? `In ${diff} days`
               : `${-diff} days overdue`;
     if (rule) subline += ` · ${ruleText}`;
+    if (several) subline += ` · ${tasks.length} to-dos`;
   }
   const options: [Mode, string][] = [
     ['never', 'Never'],
@@ -382,7 +401,7 @@ export function DatePopover({
               </strong>
               <span>{subline}</span>
             </div>
-            {date && (
+            {dated && (
               <button
                 className="date-clear"
                 aria-label="Remove date"
@@ -460,17 +479,21 @@ export function DatePopover({
               ))}
             </div>
           </div>
-          <div className="date-rule" />
-          <div className="date-section">
-            <button className="repeat-row" onClick={() => go('repeat')}>
-              <RepeatIcon />
-              <span className="repeat-row-label">Repeat</span>
-              <span className={`repeat-row-value${rule ? ' is-set' : ''}`}>
-                {ruleText}
-              </span>
-              <Chevron d="M9 5l7 7-7 7" />
-            </button>
-          </div>
+          {!several && (
+            <>
+              <div className="date-rule" />
+              <div className="date-section">
+                <button className="repeat-row" onClick={() => go('repeat')}>
+                  <RepeatIcon />
+                  <span className="repeat-row-label">Repeat</span>
+                  <span className={`repeat-row-value${rule ? ' is-set' : ''}`}>
+                    {ruleText}
+                  </span>
+                  <Chevron d="M9 5l7 7-7 7" />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
       {page === 'repeat' && (

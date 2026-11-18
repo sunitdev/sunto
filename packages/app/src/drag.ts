@@ -2,15 +2,16 @@ import type { DragEvent } from 'react';
 import type { Task } from './storage/model';
 
 // To-dos are dragged by id under their own type, so drop targets can tell
-// them from dragged projects and text while the drag is under way.
+// them from dragged projects and text while the drag is under way. Dragging
+// one of several selected to-dos drags them all, as `ids`.
 const type = 'application/x-sunto-task';
-export function startTaskDrag(e: DragEvent, task: Task) {
+export function startTaskDrag(e: DragEvent, task: Task, ids = [task.id]) {
   e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData(type, task.id);
+  e.dataTransfer.setData(type, ids.join('\n'));
   e.dataTransfer.setData('text/plain', task.title);
 }
-// Handlers for an element that accepts dropped to-dos. `hover` reports when
-// a to-do is dragged over or away from it.
+// Handlers for an element that accepts dropped to-dos, calling `drop` for
+// each. `hover` reports when a to-do is dragged over or away from it.
 export function taskDropTarget(
   hover: (over: boolean) => void,
   drop: (id: string) => void,
@@ -31,12 +32,12 @@ export function taskDropTarget(
       hover(false);
     },
     onDrop: (e: DragEvent) => {
-      const id = e.dataTransfer.getData(type);
-      if (!id) return;
+      const ids = e.dataTransfer.getData(type);
+      if (!ids) return;
       e.preventDefault();
       e.stopPropagation();
       hover(false);
-      drop(id);
+      ids.split('\n').forEach(drop);
     },
   };
 }

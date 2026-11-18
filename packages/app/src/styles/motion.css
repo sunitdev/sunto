@@ -416,7 +416,8 @@
   .inbox-app:has(.popover, .context-menu)::after {
     animation: fade-in 0.25s ease;
   }
-  .is-editing .inbox-footer {
+  .is-editing .inbox-footer,
+  .is-selecting .inbox-footer {
     animation: sheet-in 0.28s var(--ease-out);
   }
   .add-button {

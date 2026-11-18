@@ -79,3 +79,6 @@ export function dueLabel(date: string, today: string) {
     overdue,
   };
 }
+// "1 to-do" or "3 to-dos", or "1 To-Do" and "3 To-Dos" as a heading.
+export const todoCount = (n: number, heading = false) =>
+  `${n} ${heading ? 'To-Do' : 'to-do'}${n === 1 ? '' : 's'}`;

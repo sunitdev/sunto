@@ -15,20 +15,25 @@ export type ItemProps = {
   phone: boolean;
   editing: string | null;
   selected: string | null;
+  // The to-dos picked together, when there are several.
+  picked: string[];
   editorRef: RefObject<HTMLLIElement | null>;
   library: Library;
   closeEditor: () => void;
   onToggle: (task: Task) => void;
   onEdit: (task: Task) => void;
-  onSelect: (id: string) => void;
+  // Shift-click picks the to-dos from the selected one to this one, and
+  // Cmd-click adds this one to those picked or takes it out.
+  onSelect: (id: string, how?: 'range' | 'toggle') => void;
   onMenu: (task: Task, x: number, y: number) => void;
   onMove: (task: Task, anchor: DOMRect) => void;
   onDate: (task: Task, anchor: DOMRect) => void;
   onEpic: (task: Task, anchor: DOMRect) => void;
 };
 // One to-do, or its editor. On desktop, to-dos in the Inbox, projects and
-// areas can be dragged onto another list, or onto an epic of their project.
-// Its menu opens with a right-click, or by holding a finger on it.
+// areas can be dragged onto another list, or onto an epic of their project,
+// along with the others picked with it. Its menu opens with a right-click, or
+// by holding a finger on it.
 export function TaskItem({
   task,
   view,
@@ -36,6 +41,7 @@ export function TaskItem({
   phone,
   editing,
   selected,
+  picked,
   editorRef,
   library,
   closeEditor,
@@ -57,7 +63,7 @@ export function TaskItem({
     <li
       data-task={task.id}
       ref={editing === task.id ? editorRef : undefined}
-      className={`task-item${task.completed ? ' task-row--completed' : ''}${editing === task.id ? ' task-item--editing' : ''}${selected === task.id && !phone ? ' task-item--selected' : ''}${dragging ? ' task-item--dragging' : ''}`}
+      className={`task-item${task.completed ? ' task-row--completed' : ''}${editing === task.id ? ' task-item--editing' : ''}${(selected === task.id && !phone) || picked.includes(task.id) ? ' task-item--selected' : ''}${dragging ? ' task-item--dragging' : ''}`}
     >
       {editing === task.id ? (
         <Editor
@@ -82,7 +88,11 @@ export function TaskItem({
           className="task-row"
           draggable={!phone && !archive}
           onDragStart={(e) => {
-            startTaskDrag(e, task);
+            startTaskDrag(
+              e,
+              task,
+              picked.includes(task.id) ? picked : undefined,
+            );
             setDragging(true);
           }}
           onDragEnd={() => setDragging(false)}
@@ -101,11 +111,26 @@ export function TaskItem({
           )}
           <button
             className="task-title"
-            // Desktop: click selects, double-click edits.
-            onClick={() => (phone ? onEdit(task) : onSelect(task.id))}
+            // Desktop: click selects, double-click edits. A modified click
+            // keeps focus, and so the selection, where it was.
+            onMouseDown={(e) => {
+              if (e.shiftKey || e.metaKey || e.ctrlKey) e.preventDefault();
+            }}
+            onClick={(e) =>
+              phone
+                ? onEdit(task)
+                : onSelect(
+                    task.id,
+                    e.shiftKey
+                      ? 'range'
+                      : e.metaKey || e.ctrlKey
+                        ? 'toggle'
+                        : undefined,
+                  )
+            }
             onDoubleClick={() => onEdit(task)}
             onFocus={() => {
-              if (!phone) onSelect(task.id);
+              if (!phone && !picked.includes(task.id)) onSelect(task.id);
             }}
           >
             <span>{task.title || 'New To-Do'}</span>

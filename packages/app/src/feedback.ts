@@ -1,4 +1,5 @@
 import * as store from './storage/store';
+import { todoCount } from './views';
 
 // The confirmation waiting for an answer, and the toast on screen, each held
 // here so any component can ask for one without passing callbacks down.
@@ -52,4 +53,15 @@ export function trashTodo(id: string) {
         () => void store.setTrashed(id, false),
       );
   });
+}
+// Moves several to-dos to the Trash, offering to put them all back.
+export function trashTodos(ids: string[]) {
+  void store
+    .setTrashedAll(ids, true)
+    .then(() =>
+      showToast(
+        `${todoCount(ids.length)} moved to Trash`,
+        () => void store.setTrashedAll(ids, false),
+      ),
+    );
 }

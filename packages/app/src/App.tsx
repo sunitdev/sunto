@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import * as store from './storage/store';
 import { native } from './storage/driver';
-import { confirmAction, showToast, trashTodo } from './feedback';
+import { confirmAction, showToast, trashTodo, trashTodos } from './feedback';
 import type { Task } from './storage/model';
 import { dayKey } from './storage/dates';
 import {
@@ -24,6 +24,7 @@ import { useTaskKeyboard } from './hooks/useTaskKeyboard';
 import {
   dayName,
   empties,
+  todoCount,
   isStatic,
   titles,
   untitled,
@@ -36,7 +37,7 @@ import { ConfirmDialog } from './components/ConfirmDialog';
 import { ContextMenu } from './components/ContextMenu';
 import { DatePopover } from './components/DatePopover';
 import { EpicBar } from './components/EpicBar';
-import { Footer } from './components/Footer';
+import { Footer, type Bulk } from './components/Footer';
 import { GoalCard, Planner, PlanPrompt } from './components/Goal';
 import {
   InboxIcon,
@@ -73,7 +74,19 @@ export function App() {
   const { editing, setEditing, closeEditor, editorArea, footer, addButton } =
     useEditor();
   const [lingering, setLingering] = useState<Record<string, true>>({});
-  const [selected, setSelected] = useState<string | null>(null);
+  // The selected to-do, and the to-dos picked with it on desktop by
+  // Shift-click, Cmd-click or Shift with an arrow key. Shift picks from the
+  // selected one. On the phone, Select in a to-do's menu starts picking, and
+  // then tapping a to-do picks it or takes it out.
+  const [selected, setAnchor] = useState<string | null>(null);
+  const [picks, setPicks] = useState<string[]>([]);
+  const [selecting, setSelecting] = useState(false);
+  // Selecting one to-do drops any others picked.
+  const setSelected = useCallback((id: string | null) => {
+    setAnchor(id);
+    setPicks([]);
+    setSelecting(false);
+  }, []);
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(
     null,
   );
@@ -158,11 +171,62 @@ export function App() {
   }));
   // The to-dos in display order, which sections change.
   const shown = groups.flatMap((g) => g.tasks);
+  // The picked to-dos still shown, in display order, when there are several,
+  // or while picking on the phone.
+  const pickedTasks = shown.filter((t) => picks.includes(t.id));
+  const choosing = phone && selecting;
+  const bulk =
+    choosing || (!phone && pickedTasks.length > 1) ? pickedTasks : [];
+  const picked = bulk.map((t) => t.id);
+  function startSelecting(task: Task) {
+    if (editing) closeEditor();
+    setAnchor(task.id);
+    setPicks([task.id]);
+    setSelecting(true);
+  }
+  function togglePick(id: string) {
+    setPicks(
+      picks.includes(id) ? picks.filter((p) => p !== id) : [...picks, id],
+    );
+  }
+  function pick(ids: string[]) {
+    if (ids.length < 2) setSelected(ids[0] ?? selected);
+    else setPicks(ids);
+  }
+  // Shift-click picks the to-dos from the selected one to `id`; Cmd-click
+  // adds `id` to those picked, or takes it out, and selects it.
+  function selectTo(id: string, how?: 'range' | 'toggle') {
+    const from = shown.findIndex((t) => t.id === selected);
+    if (!how || from < 0) return setSelected(id);
+    if (how === 'range') {
+      const to = shown.findIndex((t) => t.id === id);
+      return pick(
+        shown
+          .slice(Math.min(from, to), Math.max(from, to) + 1)
+          .map((t) => t.id),
+      );
+    }
+    const current = picked.length ? picked : [selected!];
+    const next = current.includes(id)
+      ? current.filter((p) => p !== id)
+      : [...current, id];
+    if (next.length < 2) return setSelected(next[0] ?? null);
+    setAnchor(next.includes(id) ? id : next[next.length - 1]);
+    setPicks(next);
+  }
   useSync();
   // Selects the neighbouring to-do so repeated deletes keep working.
   function leave(task: Task) {
-    const i = shown.findIndex((t) => t.id === task.id);
-    setSelected((shown[i + 1] ?? shown[i - 1])?.id ?? null);
+    leaveAll([task]);
+  }
+  function leaveAll(gone: Task[]) {
+    const first = shown.indexOf(gone[0]);
+    const last = shown.indexOf(gone[gone.length - 1]);
+    const stays = (t?: Task) => t && !gone.includes(t);
+    const next =
+      shown.slice(last + 1).find(stays) ??
+      shown.slice(0, Math.max(first, 0)).reverse().find(stays);
+    setSelected(next?.id ?? null);
   }
   // In Trash, deleting is permanent, so it asks first; elsewhere it moves the
   // to-do to Trash, with a toast to undo it.
@@ -182,6 +246,31 @@ export function App() {
       },
     });
   }
+  // Several to-dos go to Trash together, with one toast to undo it, or out of
+  // it permanently after asking.
+  function removeAll(gone: Task[]) {
+    if (view !== 'trash') {
+      leaveAll(gone);
+      trashTodos(gone.map((t) => t.id));
+      return;
+    }
+    confirmAction({
+      title: `Delete ${todoCount(gone.length)} permanently?`,
+      body: 'They will be deleted now, rather than three months after they were trashed. This can’t be undone.',
+      action: 'Delete',
+      run: () => {
+        leaveAll(gone);
+        void store.updateAll(gone.map((t) => [t.id, { deleted: true }]));
+      },
+    });
+  }
+  function putBackAll(back: Task[]) {
+    leaveAll(back);
+    void store.setTrashedAll(
+      back.map((t) => t.id),
+      false,
+    );
+  }
   function emptyTrash() {
     if (editing) closeEditor();
     const trashed = tasks;
@@ -200,12 +289,22 @@ export function App() {
   useTaskKeyboard({
     tasks: shown,
     selected,
+    picked: bulk,
     select: setSelected,
-    paused: !!editing || !!menu || (view === 'goal' && !!planning) || welcome,
+    pick,
+    paused:
+      !!editing ||
+      !!menu ||
+      !!moving ||
+      !!dating ||
+      (view === 'goal' && !!planning) ||
+      welcome,
     remove,
+    removeAll,
     edit: setEditing,
   });
   function openEditor(task: Task) {
+    if (choosing) return togglePick(task.id);
     if (editing) closeEditor();
     setSelected(task.id);
     setEditing(task.id);
@@ -357,9 +456,11 @@ export function App() {
     if (store.getSnapshot().state.tasks[id])
       void store.update(task.id, { epic: id });
   }
-  function moveTo(list: string) {
+  function moveTo(list: string, section = '') {
     setMoving(null);
-    closeEditor((id) => void store.move(id, list));
+    if (editing) closeEditor((id) => void store.moveAll([id], list, section));
+    else void store.moveAll(picked, list, section);
+    if (choosing) setSelected(null);
   }
   async function addList(kind: 'project' | 'area') {
     if (editing) closeEditor();
@@ -402,7 +503,59 @@ export function App() {
   }
   const menuTask = menu && tasks.find((t) => t.id === menu.id);
   const menuSections = menuTask ? sectionsOf(menuTask.list) : [];
-  const movingTask = editing ? state.tasks[editing] : undefined;
+  // The pickers act on the edited to-do, or else the picked ones.
+  const movingTasks = editing
+    ? [state.tasks[editing]].filter(Boolean)
+    : moving || dating
+      ? bulk
+      : [];
+  const movingTask = editing ? movingTasks[0] : undefined;
+  // Where the moving to-dos all are, if they share a list and section.
+  const [firstMoving] = movingTasks;
+  const movingFrom =
+    firstMoving &&
+    movingTasks.every(
+      (t) =>
+        library.listOf(t) === library.listOf(firstMoving) &&
+        t.section === firstMoving.section,
+    )
+      ? {
+          list: library.listOf(firstMoving),
+          section: sectionsOf(library.listOf(firstMoving)).some(
+            (s) => s.id === firstMoving.section,
+          )
+            ? firstMoving.section
+            : '',
+        }
+      : undefined;
+  // In a project with sections, the to-dos picked from it can change section
+  // from their menu, which the phone can do without dragging.
+  const bulkProject =
+    bulk.length &&
+    bulk.every((t) => library.listOf(t) === library.listOf(bulk[0]))
+      ? library.listOf(bulk[0])
+      : '';
+  const bulkSections = bulkProject ? sectionsOf(bulkProject) : [];
+  const bulkActions: Bulk | undefined =
+    bulk.length || choosing
+      ? {
+          count: bulk.length,
+          done: choosing ? () => setSelected(null) : undefined,
+          inTrash: view === 'trash',
+          move: view === 'logbook' ? undefined : setMoving,
+          date: view === 'logbook' ? undefined : setDating,
+          putBack: () => putBackAll(bulk),
+          remove: () => removeAll(bulk),
+        }
+      : undefined;
+  // On the phone, a to-do's menu starts picking several to-dos.
+  const select =
+    phone && menuTask
+      ? [
+          { label: 'Select', action: () => startSelecting(menuTask) },
+          'divider' as const,
+        ]
+      : [];
   const menuList = menu && lists[menu.id];
   const areaProjects =
     openList?.kind === 'area'
@@ -414,15 +567,20 @@ export function App() {
     phone,
     editing,
     selected,
+    picked,
     editorRef: editorArea,
     library,
     closeEditor,
     onToggle: toggle,
     onEdit: openEditor,
-    onSelect: setSelected,
+    onSelect: selectTo,
+    // A picked to-do's menu acts on all those picked, as does any to-do's
+    // while picking on the phone, which picks it too.
     onMenu: (task: Task, x: number, y: number) => {
       if (editing) closeEditor();
-      setSelected(task.id);
+      if (choosing) {
+        if (!picks.includes(task.id)) setPicks([...picks, task.id]);
+      } else if (!picked.includes(task.id)) setSelected(task.id);
       setMenu({ id: task.id, x, y });
     },
     onMove: (_task: Task, anchor: DOMRect) => setMoving(anchor),
@@ -431,7 +589,7 @@ export function App() {
   };
   return (
     <div
-      className={`inbox-app${editing ? ' is-editing' : ''}${atHome ? ' is-home' : ''}${arrival === 'pop' ? ' is-returning' : arrival === 'swipe' ? ' is-swiped' : ''}${planning ? ' is-planning' : ''}`}
+      className={`inbox-app${editing ? ' is-editing' : ''}${atHome ? ' is-home' : ''}${arrival === 'pop' ? ' is-returning' : arrival === 'swipe' ? ' is-swiped' : ''}${planning ? ' is-planning' : ''}${choosing ? ' is-selecting' : ''}`}
     >
       <Sidebar
         library={library}
@@ -600,20 +758,21 @@ export function App() {
           addSection={project && addSection}
           move={setMoving}
           closeEditor={closeEditor}
+          bulk={bulkActions}
         />
       </main>
-      {moving && movingTask && (
+      {moving && movingTasks.length > 0 && (
         <MovePopover
-          task={movingTask}
+          current={movingFrom}
           library={library}
           anchor={moving}
           move={moveTo}
           close={closeMove}
         />
       )}
-      {dating && movingTask && (
+      {dating && movingTasks.length > 0 && (
         <DatePopover
-          task={movingTask}
+          tasks={movingTasks}
           today={today}
           anchor={dating}
           close={closeDate}
@@ -642,7 +801,78 @@ export function App() {
           ]}
         />
       )}
-      {menuTask && (
+      {menuTask &&
+        (choosing || picked.includes(menuTask.id)) &&
+        bulkActions && (
+          <ContextMenu
+            x={menu.x}
+            y={menu.y}
+            close={closeMenu}
+            items={
+              view === 'trash'
+                ? [
+                    { heading: todoCount(bulk.length, true) },
+                    { label: 'Put Back', action: bulkActions.putBack },
+                    'divider',
+                    {
+                      label: 'Delete Immediately…',
+                      danger: true,
+                      action: bulkActions.remove,
+                    },
+                  ]
+                : [
+                    { heading: todoCount(bulk.length, true) },
+                    ...(view !== 'logbook'
+                      ? [
+                          {
+                            label: 'Move…',
+                            action: () =>
+                              setMoving(new DOMRect(menu.x, menu.y, 0, 0)),
+                          },
+                          {
+                            label: 'Set Date…',
+                            action: () =>
+                              setDating(new DOMRect(menu.x, menu.y, 0, 0)),
+                          },
+                          {
+                            label: 'Complete',
+                            action: () =>
+                              bulk.forEach((t) => !t.completed && toggle(t)),
+                          },
+                          'divider' as const,
+                        ]
+                      : []),
+                    ...(view !== 'logbook' && bulkSections.length
+                      ? [
+                          { heading: 'Section' },
+                          {
+                            label: 'No Section',
+                            checked: bulk.every(
+                              (t) =>
+                                !bulkSections.some((s) => s.id === t.section),
+                            ),
+                            action: () =>
+                              void store.moveAll(picked, bulkProject),
+                          },
+                          ...bulkSections.map((s) => ({
+                            label: s.title || 'New Section',
+                            checked: bulk.every((t) => t.section === s.id),
+                            action: () =>
+                              void store.moveAll(picked, bulkProject, s.id),
+                          })),
+                          'divider' as const,
+                        ]
+                      : []),
+                    {
+                      label: 'Move to Trash',
+                      danger: true,
+                      action: bulkActions.remove,
+                    },
+                  ]
+            }
+          />
+        )}
+      {menuTask && !choosing && !picked.includes(menuTask.id) && (
         <ContextMenu
           x={menu.x}
           y={menu.y}
@@ -650,6 +880,7 @@ export function App() {
           items={
             view === 'trash'
               ? [
+                  ...select,
                   { label: 'Put Back', action: () => putBack(menuTask) },
                   'divider',
                   {
@@ -659,6 +890,7 @@ export function App() {
                   },
                 ]
               : [
+                  ...select,
                   // In a project with sections, the to-do can change section
                   // without being dragged, which the phone can't do.
                   ...(view !== 'logbook' && menuSections.length
