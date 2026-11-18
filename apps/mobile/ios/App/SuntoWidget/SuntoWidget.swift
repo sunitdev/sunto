@@ -92,13 +92,13 @@ struct Check: View {
       if on {
         Circle().fill(accent).widgetAccentable()
         Image(systemName: "checkmark")
-          .font(.system(size: 10, weight: .heavy))
+          .font(.system(size: 9, weight: .heavy))
           .foregroundStyle(.white)
       } else {
         Circle().strokeBorder(.secondary, lineWidth: 1.5)
       }
     }
-    .frame(width: 20, height: 20)
+    .frame(width: 18, height: 18)
     .frame(width: 28, height: 27)
     .contentShape(Rectangle())
   }
@@ -112,7 +112,7 @@ struct Row: View {
       }
       .buttonStyle(.plain)
       Text(item.title.isEmpty ? "New To-Do" : item.title)
-        .font(.subheadline)
+        .font(.footnote)
         .strikethrough(item.completed)
         .foregroundStyle(item.completed ? .secondary : .primary)
         .lineLimit(1)
@@ -120,10 +120,10 @@ struct Row: View {
       Spacer(minLength: 4)
       // A long title leaves the list's name a little room.
       Text(item.list)
-        .font(.caption)
+        .font(.caption2)
         .foregroundStyle(.secondary)
         .lineLimit(1)
-        .frame(minWidth: min(CGFloat(item.list.count) * 7, 72), alignment: .trailing)
+        .frame(minWidth: min(CGFloat(item.list.count) * 6, 64), alignment: .trailing)
     }
   }
 }
@@ -132,13 +132,13 @@ struct Header: View {
   var body: some View {
     HStack(spacing: 6) {
       Image(systemName: "target")
-        .font(.headline)
+        .font(.subheadline.weight(.semibold))
         .foregroundStyle(accent)
         .widgetAccentable()
-      Text("Today’s Goal").font(.headline)
+      Text("Today’s Goal").font(.subheadline.weight(.semibold))
       Spacer()
       Text(progress)
-        .font(.subheadline)
+        .font(.footnote)
         .foregroundStyle(.secondary)
     }
   }
@@ -160,8 +160,8 @@ struct Slots: View {
 }
 struct GoalView: View {
   let entry: GoalEntry
-  // Rows that fit a large widget; when there are more, the last says so.
-  let rows = 9
+  // More rows than any large widget fits, to bound the layouts tried.
+  let rows = 16
   var body: some View {
     content
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -187,24 +187,32 @@ struct GoalView: View {
           Slots(done: done, count: todos.count)
           if done == todos.count {
             Text("Goal complete. Anything else today is a bonus.")
-              .font(.caption)
+              .font(.caption2)
               .foregroundStyle(good)
           }
-          VStack(alignment: .leading, spacing: 2) {
-            let shown = todos.count > rows ? rows - 1 : rows
-            ForEach(todos.prefix(shown), id: \.id) { Row(item: $0) }
-            if todos.count > shown {
-              Text("\(todos.count - shown) more")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.leading, 36)
-                .padding(.top, 4)
+          // As many rows as fit the widget, trying every to-do first.
+          ViewThatFits(in: .vertical) {
+            ForEach(Array(stride(from: min(todos.count, rows), through: 1, by: -1)), id: \.self) {
+              list(todos, shown: $0)
             }
           }
         }
       }
     } else {
       message("Open Sunto", "Open the app once to show your goal here.")
+    }
+  }
+  // The first `shown` to-dos; when there are more, a last line says so.
+  func list(_ todos: [GoalItem], shown: Int) -> some View {
+    VStack(alignment: .leading, spacing: 2) {
+      ForEach(todos.prefix(shown), id: \.id) { Row(item: $0) }
+      if todos.count > shown {
+        Text("\(todos.count - shown) more")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+          .padding(.leading, 36)
+          .padding(.top, 4)
+      }
     }
   }
   func plan(due: Int) -> some View {
@@ -221,12 +229,12 @@ struct GoalView: View {
       Spacer()
       VStack(spacing: 6) {
         Image(systemName: "target")
-          .font(.system(size: 34))
+          .font(.system(size: 30))
           .foregroundStyle(accent)
           .widgetAccentable()
-        Text(title).font(.headline)
+        Text(title).font(.subheadline.weight(.semibold))
         Text(text)
-          .font(.subheadline)
+          .font(.footnote)
           .foregroundStyle(.secondary)
           .multilineTextAlignment(.center)
       }
