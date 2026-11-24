@@ -471,7 +471,12 @@ export function App() {
   function moveTo(list: string, section = '') {
     setMoving(null);
     if (editing) closeEditor((id) => void store.moveAll([id], list, section));
-    else void store.moveAll(picked, list, section);
+    else
+      void store.moveAll(
+        movingTasks.map((t) => t.id),
+        list,
+        section,
+      );
     if (choosing) setSelected(null);
   }
   async function addList(kind: 'project' | 'area') {
@@ -515,11 +520,14 @@ export function App() {
   }
   const menuTask = menu && tasks.find((t) => t.id === menu.id);
   const menuSections = menuTask ? sectionsOf(menuTask.list) : [];
-  // The pickers act on the edited to-do, or else the picked ones.
+  // The pickers act on the edited to-do, or else the picked ones, or else
+  // the selected one, whose own menu opened them.
   const movingTasks = editing
     ? [state.tasks[editing]].filter(Boolean)
     : moving || dating
-      ? bulk
+      ? bulk.length
+        ? bulk
+        : [state.tasks[selected ?? '']].filter(Boolean)
       : [];
   const movingTask = editing ? movingTasks[0] : undefined;
   // Where the moving to-dos all are, if they share a list and section.
@@ -903,6 +911,29 @@ export function App() {
                 ]
               : [
                   ...select,
+                  ...(view !== 'logbook'
+                    ? [
+                        {
+                          label: 'Move…',
+                          action: () =>
+                            setMoving(new DOMRect(menu.x, menu.y, 0, 0)),
+                        },
+                        {
+                          label: 'Set Date…',
+                          action: () =>
+                            setDating(new DOMRect(menu.x, menu.y, 0, 0)),
+                        },
+                        ...(menuTask.completed
+                          ? []
+                          : [
+                              {
+                                label: 'Complete',
+                                action: () => toggle(menuTask),
+                              },
+                            ]),
+                        'divider' as const,
+                      ]
+                    : []),
                   // In a project with sections, the to-do can change section
                   // without being dragged, which the phone can't do.
                   ...(view !== 'logbook' && menuSections.length
