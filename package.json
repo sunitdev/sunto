@@ -14,6 +14,8 @@
     "ios:sync": "pnpm build:web && node scripts/sync-ios.mjs",
     "ios:open": "pnpm --filter @sunto/mobile open",
     "ios:install": "node scripts/install-ios.mjs",
+    "ios:auto-install": "node scripts/ios-auto-install.mjs setup",
+    "ios:auto-install:remove": "node scripts/ios-auto-install.mjs remove",
     "mac:install": "node scripts/install-mac.mjs",
     "icons": "node scripts/build-icons.mjs",
     "mcp:build": "pnpm --filter @sunto/mcp build",

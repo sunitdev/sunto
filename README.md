@@ -22,7 +22,20 @@ pnpm mac:install   # build and install to /Applications
 pnpm ios:install   # build and install on a connected iPhone
 ```
 
-On first iPhone install, trust the developer in **Settings → General → VPN & Device Management**. Free Apple accounts need a reinstall every 7 days.
+On first iPhone install, trust the developer in **Settings → General → VPN & Device Management**.
+
+### Keep it running on a free Apple account
+
+Apps signed with a free Apple account stop opening after 7 days, with "Sunto is no longer available". To have this Mac reinstall it before then:
+
+```sh
+pnpm ios:auto-install          # set up a daily check
+pnpm ios:auto-install:remove   # turn it off
+```
+
+A LaunchAgent checks daily at 9:00 and at login. Once the installed build has under 3 days left, it reinstalls over Wi-Fi, so the iPhone needs no cable. It does need to be on the same network as the Mac and paired with it (connect it by cable once and trust this Mac). Reinstalling keeps your data. You get a notification when it reinstalls or fails, and `~/Library/Logs/sunto-ios-reinstall.log` records each run.
+
+It builds whatever is checked out in this folder, using the Node and pnpm it was set up with. Run the setup again after moving the repo or changing Node versions. To reinstall right away, run `node scripts/ios-auto-install.mjs run --force`.
 
 ## iPhone widget
 
