@@ -83,8 +83,8 @@ export const setTrashed = (id: string, trashed: boolean) =>
   setTrashedAll([id], trashed);
 export const setTrashedAll = (ids: string[], trashed: boolean) =>
   updateAll(ids.map((id) => [id, trashing(trashed)]));
-export const setCompleted = (id: string, completed: boolean) =>
-  updateAll(completion(state, id, completed));
+export const setCompleted = (id: string, completed: boolean, forever = false) =>
+  updateAll(completion(state, id, completed, forever));
 // Picks the to-dos `ids` for the goal of `day`, dropping any others.
 export function setPlan(day: string, ids: string[]) {
   const picked = new Set(ids);

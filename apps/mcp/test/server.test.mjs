@@ -165,7 +165,7 @@ test('moving a to-do past the day of its goal takes it out of the goal', async (
   assert.equal(appSync().tasks[milk.id].planned, '');
 });
 
-test('completing a repeating to-do adds the next one', async () => {
+test('completing a repeating to-do adds the next one, unless forever', async () => {
   const [plants] = (await sunto.call('sunto_search', { query: 'plants' }))
     .todos;
   await sunto.call('sunto_complete_todos', { ids: [plants.id] });
@@ -179,6 +179,18 @@ test('completing a repeating to-do adds the next one', async () => {
   );
   const done = await sunto.call('sunto_list_todos', { view: 'logbook' });
   assert.equal(done.todos[0].id, plants.id);
+  const [next] = open.todos;
+  const { updated } = await sunto.call('sunto_complete_todos', {
+    ids: [next.id],
+    forever: true,
+  });
+  assert.equal(updated[0].repeat, undefined);
+  const after = await sunto.call('sunto_list_todos', {
+    view: 'list',
+    list: project,
+  });
+  assert.deepEqual(after.todos, []);
+  assert.equal(appSync().tasks[next.id].repeat, '');
 });
 
 test('to-dos are deleted only from Trash, and deleting a list trashes its to-dos', async () => {

@@ -316,9 +316,10 @@ export function App() {
     setSelected(task.id);
     setEditing(task.id);
   }
-  function toggle(task: Task) {
+  // `forever` completes a repeating to-do without adding its next occurrence.
+  function toggle(task: Task, forever = false) {
     const completed = !task.completed;
-    void store.setCompleted(task.id, completed);
+    void store.setCompleted(task.id, completed, forever);
     // Completed to-dos stay briefly in their list before moving to the Logbook.
     const linger =
       completed &&
@@ -930,6 +931,15 @@ export function App() {
                                 label: 'Complete',
                                 action: () => toggle(menuTask),
                               },
+                              // A repeating to-do can end with this one.
+                              ...(menuTask.repeat
+                                ? [
+                                    {
+                                      label: 'Complete Forever',
+                                      action: () => toggle(menuTask, true),
+                                    },
+                                  ]
+                                : []),
                             ]),
                         'divider' as const,
                       ]

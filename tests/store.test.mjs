@@ -324,6 +324,17 @@ test('completing a repeating to-do adds the next one, and the day plan replaces 
   assert.equal(tasks[water].planned, '');
   assert.equal(tasks[once].planned, '2026-03-10');
   assert.equal(tasks[next[0].id].planned, '2026-03-12');
+  // Completing it forever ends the series.
+  await store.setCompleted(next[0].id, true, true);
+  ({ tasks } = store.getSnapshot().state);
+  assert.equal(tasks[next[0].id].completed, true);
+  assert.equal(tasks[next[0].id].repeat, '');
+  assert.equal(
+    Object.values(tasks).filter(
+      (t) => t.title === 'Water the plants' && !t.completed,
+    ).length,
+    0,
+  );
 });
 test('epics take colours in turn, and a to-do leaves its epic when deleted, moved or its project is deleted', async () => {
   let saved;

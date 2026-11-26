@@ -75,13 +75,16 @@ export const rescheduling = (
     ? { ...patch, planned: '' }
     : patch;
 // Completing a repeating to-do adds its next occurrence in the same place,
-// and the completed one stops repeating.
+// and the completed one stops repeating. Completing it `forever` adds none.
 export function completion(
   state: State,
   id: string,
   completed: boolean,
+  forever = false,
 ): Changes {
   const task = state.tasks[id];
+  if (completed && forever)
+    return [[id, { completed, completedAt: Date.now(), repeat: '' }]];
   const rule =
     completed && task && !task.trashed && task.date
       ? parseRepeat(task.repeat)

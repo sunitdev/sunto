@@ -272,11 +272,12 @@ export const completeTodos = (
   state: State,
   ids: string[],
   completed: boolean,
+  forever = false,
 ) =>
   ids.flatMap((id) =>
     todo(state, id).completed === completed
       ? []
-      : completion(state, id, completed),
+      : completion(state, id, completed, forever),
   );
 
 export const trashTodos = (

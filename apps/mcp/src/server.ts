@@ -239,13 +239,22 @@ server.registerTool(
   {
     title: 'Complete to-dos',
     description:
-      'Marks to-dos completed, sending them to the Logbook, or open again. Completing a repeating to-do adds its next occurrence.',
-    inputSchema: { ids, completed: z.boolean().default(true) },
+      'Marks to-dos completed, sending them to the Logbook, or open again. Completing a repeating to-do adds its next occurrence, unless forever is true.',
+    inputSchema: {
+      ids,
+      completed: z.boolean().default(true),
+      forever: z
+        .boolean()
+        .default(false)
+        .describe(
+          'Completes repeating to-dos without adding their next occurrence, ending the series',
+        ),
+    },
     annotations: { ...writes, idempotentHint: true },
   },
-  ({ ids, completed }) =>
+  ({ ids, completed, forever }) =>
     tool(
-      (state) => sunto.completeTodos(state, ids, completed),
+      (state) => sunto.completeTodos(state, ids, completed, forever),
       (state) => ({ updated: todos(state, ids) }),
     ),
 );
